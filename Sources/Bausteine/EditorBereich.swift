@@ -29,7 +29,7 @@ struct BausteinEditor: View {
     @AppStorage("ltAktiv") private var ltAktiv = false
     @AppStorage("ltBenutzer") private var ltBenutzer = ""
     @AppStorage("ltSprache") private var ltSprache = "auto"
-    @AppStorage("schriftgroesse") private var schrift = Schrift.standard
+    private var schrift: Double { store.schrift }
 
     var b: Baustein? { store.baustein(id) }
 

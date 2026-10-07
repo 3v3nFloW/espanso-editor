@@ -58,19 +58,20 @@ struct Seitenleiste: View {
     @Binding var umbenennen: String?
     @Binding var umbenennenName: String
     var neuerOrdner: () -> Void
+    private var schrift: Double { store.schrift }
 
     var body: some View {
         @Bindable var store = store
         List(selection: Binding(get: { store.seite }, set: { if let s = $0 { store.seite = s } })) {
             Section {
-                Label { HStack { Text("Alle"); Spacer(); Zahl(store.aktiveBausteine.count) } } icon: { Image(systemName: "tray.full") }
+                Label { HStack { Text("Alle").font(.system(size: schrift)); Spacer(); Zahl(store.aktiveBausteine.count) } } icon: { Image(systemName: "tray.full") }
                     .tag(Seitenwahl.alle)
             }
             Section("Ordner") {
                 ForEach(store.dateien) { d in
                     Label {
                         HStack {
-                            Text(d.name).foregroundStyle(d.aktiv ? .primary : .secondary)
+                            Text(d.name).font(.system(size: schrift)).foregroundStyle(d.aktiv ? .primary : .secondary)
                             if d.nurLesen { Image(systemName: "lock").foregroundStyle(.secondary).help("Aufbau nicht erkannt — nur lesen") }
                             Spacer()
                             Zahl(d.bausteine.count).opacity(d.aktiv ? 1 : 0.5)
@@ -96,15 +97,18 @@ struct Seitenleiste: View {
                 }
             }
             Section("Prüfen") {
-                Label { HStack { Text("Kollisionen"); Spacer(); Zahl(store.kollisionen.count, warnung: !store.kollisionen.isEmpty) } }
+                Label { HStack { Text("Kollisionen").font(.system(size: schrift)); Spacer(); Zahl(store.kollisionen.count, warnung: !store.kollisionen.isEmpty) } }
                     icon: { Image(systemName: "exclamationmark.triangle") }
                     .tag(Seitenwahl.kollisionen)
                     .help("Kürzel ohne Wortgrenze, die mitten in echten Wörtern auslösen")
-                Label { HStack { Text("Doppelte Kürzel"); Spacer(); Zahl(store.doppelteKuerzel.count, warnung: !store.doppelteKuerzel.isEmpty) } }
+                Label { HStack { Text("Doppelte Kürzel").font(.system(size: schrift)); Spacer(); Zahl(store.doppelteKuerzel.count, warnung: !store.doppelteKuerzel.isEmpty) } }
                     icon: { Image(systemName: "square.on.square") }
                     .tag(Seitenwahl.doppelte)
             }
         }
+        .font(.system(size: schrift))
+        .environment(\.defaultMinListRowHeight, schrift + 12)
+        .id(Int(schrift))
         .listStyle(.sidebar)
         .safeAreaInset(edge: .bottom) {
             Button { neuerOrdner() } label: { Label("Neuer Ordner", systemImage: "folder.badge.plus") }
@@ -114,11 +118,12 @@ struct Seitenleiste: View {
 }
 
 struct Zahl: View {
+    @Environment(Store.self) private var store
     let n: Int
     var warnung = false
     init(_ n: Int, warnung: Bool = false) { self.n = n; self.warnung = warnung }
     var body: some View {
-        Text("\(n)").font(.caption.monospacedDigit()).foregroundStyle(warnung ? .orange : .secondary)
+        Text("\(n)").font(.system(size: max(10, store.schrift - 2)).monospacedDigit()).foregroundStyle(warnung ? .orange : .secondary)
     }
 }
 
@@ -126,7 +131,7 @@ struct Zahl: View {
 
 struct Tabelle: View {
     @Environment(Store.self) private var store
-    @AppStorage("schriftgroesse") private var schrift = Schrift.standard
+    private var schrift: Double { store.schrift }
 
     var body: some View {
         @Bindable var store = store
@@ -184,6 +189,7 @@ struct Tabelle: View {
             }
         }
         .onDeleteCommand { loeschenFragen(store.auswahl) }
+        .id(Int(schrift))   // NSTableView behält sonst die alten Zeilenhöhen
         .overlay {
             if zeilen.isEmpty {
                 ContentUnavailableView(store.suche.isEmpty ? "Keine Bausteine" : "Nichts gefunden",
@@ -213,7 +219,7 @@ extension Baustein {
 
 struct KollisionsListe: View {
     @Environment(Store.self) private var store
-    @AppStorage("schriftgroesse") private var schrift = Schrift.standard
+    private var schrift: Double { store.schrift }
 
     var body: some View {
         @Bindable var store = store
@@ -239,6 +245,7 @@ struct KollisionsListe: View {
                 .padding(.vertical, 2)
             }
         }
+        .id(Int(schrift))
     }
 
     func beschreibung(_ k: Kollision) -> String {
@@ -255,7 +262,7 @@ extension Notification.Name { static let kuerzelFokus = Notification.Name("kuerz
 
 struct Statusleiste: View {
     @Environment(Store.self) private var store
-    @AppStorage("schriftgroesse") private var schrift = Schrift.standard
+    private var schrift: Double { store.schrift }
 
     var body: some View {
         HStack(spacing: 14) {
@@ -278,16 +285,16 @@ struct Statusleiste: View {
             case .ohneGit: Label("ohne git", systemImage: "externaldrive").foregroundStyle(.secondary)
             }
             HStack(spacing: 4) {
-                Button { schrift = max(Schrift.bereich.lowerBound, schrift - 1) } label: { Image(systemName: "textformat.size.smaller") }
+                Button { store.schriftAendern(-1) } label: { Image(systemName: "textformat.size.smaller") }
                     .buttonStyle(.borderless)
-                Slider(value: $schrift, in: Schrift.bereich, step: 1)
+                Slider(value: Binding(get: { store.schrift }, set: { store.schrift = $0 }), in: Schrift.bereich, step: 1)
                     .controlSize(.mini)
                     .frame(width: 90)
-                Button { schrift = min(Schrift.bereich.upperBound, schrift + 1) } label: { Image(systemName: "textformat.size.larger") }
+                Button { store.schriftAendern(+1) } label: { Image(systemName: "textformat.size.larger") }
                     .buttonStyle(.borderless)
             }
             .help("Schriftgrösse \(Int(schrift)) pt — ⌘+ / ⌘− / ⌘0")
-            .onTapGesture(count: 2) { schrift = Schrift.standard }
+            .onTapGesture(count: 2) { store.schrift = Schrift.standard }
             Marke()
         }
         .font(.callout)

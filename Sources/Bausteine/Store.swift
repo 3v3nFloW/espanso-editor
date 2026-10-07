@@ -27,6 +27,11 @@ final class Store {
     var auswahl: Set<UUID> = []
     var sortierung: [KeyPathComparator<Baustein>] = [KeyPathComparator(\.hauptkuerzel, comparator: .localizedStandard)]
 
+    /// Schriftgrösse für Seitenleiste, Tabelle und Editor (Regler in der Statusleiste, ⌘+ / ⌘− / ⌘0) — im Store,
+    /// damit alle Ansichten sofort mitgehen (@AppStorage kam nur bei manchen und erst nach einem Klick an).
+    var schrift: Double = Schrift.groesse { didSet { Schrift.groesse = schrift } }
+    func schriftAendern(_ d: Double) { schrift = min(max(schrift + d, Schrift.bereich.lowerBound), Schrift.bereich.upperBound) }
+
     // Zustand
     private(set) var verteilstatus: Verteilstatus = .gesichert
     private(set) var espansoAnzahl: Int?
@@ -465,15 +470,19 @@ final class Store {
         bekannteStaende = staende()
     }
 
-    /// Beim Beenden: offenes schreiben und verteilen (synchron, damit nichts liegen bleibt).
-    func beenden() {
-        let semaphore = DispatchSemaphore(value: 0)
-        Task.detached { @MainActor in
-            await self.schreiben()
-            if self.verteilstatus == .ausstehend || self.repo?.hatAenderungen == true { await self.sichern() }
-            semaphore.signal()
-        }
-        _ = semaphore.wait(timeout: .now() + 20)
+    /// Gibt es noch etwas zu speichern oder zu verteilen?
+    var hatOffenes: Bool {
+        schreibAufgabe != nil || !schreibenGeplant.isEmpty || verteilstatus == .ausstehend || { if case .fehler = verteilstatus { return true } else { return false } }()
+    }
+
+    /// Beim Beenden: offenes schreiben und verteilen.
+    func beenden() async {
+        waechter?.invalidate()
+        schreibAufgabe?.cancel(); schreibAufgabe = nil
+        gitAufgabe?.cancel()
+        await schreiben()
+        if repo != nil, verteilstatus != .gesichert || repo?.hatAenderungen == true { await sichern() }
+        if neustartAufgabe != nil { neustartAufgabe?.cancel(); await Task.detached { Espanso.neustarten() }.value }
     }
 
     // MARK: Import
@@ -523,3 +532,12 @@ final class Store {
     }
 }
 
+/// Schriftgrösse für Tabelle und Editor (Regler unten in der Statusleiste, ⌘+ / ⌘− / ⌘0).
+enum Schrift {
+    static let standard = 13.0
+    static let bereich = 10.0...24.0
+    static var groesse: Double {
+        get { UserDefaults.standard.object(forKey: "schriftgroesse") as? Double ?? standard }
+        set { UserDefaults.standard.set(min(max(newValue, bereich.lowerBound), bereich.upperBound), forKey: "schriftgroesse") }
+    }
+}

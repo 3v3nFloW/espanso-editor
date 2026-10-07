@@ -55,9 +55,9 @@ struct BausteineApp: App {
                 Button("Suchen") { NotificationCenter.default.post(name: .sucheFokus, object: nil) }.keyboardShortcut("f")
             }
             CommandGroup(after: .toolbar) {
-                Button("Schrift grösser") { Schrift.aendern(+1) }.keyboardShortcut("+")
-                Button("Schrift kleiner") { Schrift.aendern(-1) }.keyboardShortcut("-")
-                Button("Normale Schriftgrösse") { Schrift.groesse = Schrift.standard }.keyboardShortcut("0")
+                Button("Schrift grösser") { store.schriftAendern(+1) }.keyboardShortcut("+")
+                Button("Schrift kleiner") { store.schriftAendern(-1) }.keyboardShortcut("-")
+                Button("Normale Schriftgrösse") { store.schrift = Schrift.standard }.keyboardShortcut("0")
             }
         }
 
@@ -70,8 +70,32 @@ struct BausteineApp: App {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     var store: Store?
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
-    func applicationWillTerminate(_ notification: Notification) {
-        MainActor.assumeIsolated { store?.beenden() }
+
+    /// Beenden: erstes Mal absagen, Fenster weg, im Hintergrund speichern + verteilen (höchstens 15 s), dann selbst beenden.
+    /// Kein Warten im Hauptthread — ein Semaphore- bzw. terminateLater-Warten hat die App hängen lassen,
+    /// weil das Speichern selbst den Hauptthread braucht.
+    private var darfBeenden = false
+
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        MainActor.assumeIsolated {
+            guard !darfBeenden, let store, store.hatOffenes else { return .terminateNow }
+            for w in sender.windows { w.orderOut(nil) }
+            Task { @MainActor in
+                await store.beenden()
+                self.endgueltig()
+            }
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(15))
+                self.endgueltig()
+            }
+            return .terminateCancel
+        }
+    }
+
+    @MainActor private func endgueltig() {
+        guard !darfBeenden else { return }
+        darfBeenden = true
+        NSApp.terminate(nil)
     }
 }
 
@@ -169,12 +193,24 @@ enum ImportExport {
 enum Schnappschuss {
     static func vielleicht(_ store: Store) {
         let env = ProcessInfo.processInfo.environment
+        if env["BAUSTEINE_BEENDEN_TEST"] != nil {
+            // Test: Änderung machen und sofort beenden — muss gespeichert + verteilt sein und darf nicht hängen
+            NSApp.setActivationPolicy(.accessory)
+            for w in NSApp.windows { w.alphaValue = 0 }
+            Task {
+                try? await Task.sleep(for: .seconds(4))
+                if let b = store.aktiveBausteine.first(where: { $0.hauptkuerzel == "ggr" }) { store.aendern(b.id) { $0.text = "geringgradig (Beenden-Test)" } }
+                NSApp.terminate(nil)
+            }
+            return
+        }
         guard let ziel = env["BAUSTEINE_SCHNAPPSCHUSS"] else { return }
         NSApp.setActivationPolicy(.accessory)
         for w in NSApp.windows { w.alphaValue = 0; w.setContentSize(NSSize(width: 1400, height: 860)) }
         Task {
             try? await Task.sleep(for: .seconds(4))
             if env["BAUSTEINE_SCHNAPPSCHUSS_SEITE"] == "kollisionen" { store.seite = .kollisionen }
+            if let g = env["BAUSTEINE_SCHNAPPSCHUSS_SCHRIFT"].flatMap(Double.init) { store.schrift = g }
             if let k = env["BAUSTEINE_SCHNAPPSCHUSS_KUERZEL"], let b = store.aktiveBausteine.first(where: { $0.hauptkuerzel == k }) { store.auswahl = [b.id] }
             for w in NSApp.windows where w.frame.width > 500 { w.setFrame(NSRect(x: 0, y: 0, width: 1400, height: 860), display: true) }
             try? await Task.sleep(for: .seconds(2))
@@ -187,13 +223,3 @@ enum Schnappschuss {
     }
 }
 
-/// Schriftgrösse für Tabelle und Editor (Regler unten in der Statusleiste, ⌘+ / ⌘− / ⌘0).
-enum Schrift {
-    static let standard = 13.0
-    static let bereich = 10.0...24.0
-    static var groesse: Double {
-        get { UserDefaults.standard.object(forKey: "schriftgroesse") as? Double ?? standard }
-        set { UserDefaults.standard.set(min(max(newValue, bereich.lowerBound), bereich.upperBound), forKey: "schriftgroesse") }
-    }
-    static func aendern(_ d: Double) { groesse = groesse + d }
-}
