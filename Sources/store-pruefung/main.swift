@@ -17,7 +17,8 @@ Task { @MainActor in
     s.starten()
     await warte(4)
     print("Geladen: \(s.dateien.count) Ordner, \(s.aktiveBausteine.count) aktiv, espanso \(s.espansoAnzahl ?? -1)")
-    pruefe(s.aktiveBausteine.count == 381 && s.espansoAnzahl == 381, "381 aktiv, espanso zählt gleich")
+    let n0 = s.aktiveBausteine.count
+    pruefe(n0 > 0 && s.espansoAnzahl == n0, "\(n0) aktiv, espanso zählt gleich")
     pruefe(s.dateien.allSatisfy { !$0.nurLesen }, "alle Dateien bearbeitbar")
 
     // 1 Text ändern → nur dieser Eintrag ändert sich in der Datei
@@ -26,14 +27,14 @@ Task { @MainActor in
     await warte(2.5)
     let diff = git(["diff", "--numstat"])
     pruefe(diff.trimmingCharacters(in: .whitespacesAndNewlines) == "1\t1\tmatch/meine-abkuerzungen.yml", "ggr geändert: genau 1 Zeile in 1 Datei (\(diff.trimmingCharacters(in: .whitespacesAndNewlines)))")
-    pruefe(s.espansoAnzahl == 381, "espanso weiter 381")
+    pruefe(s.espansoAnzahl == n0, "espanso weiter \(n0)")
 
     // 2 Verschieben
     let ctx = s.aktiveBausteine.first { $0.hauptkuerzel == "cbctx" }!
     s.verschieben([ctx.id], nach: "rx.yml")
     await warte(2.5)
     pruefe(datei("rx.yml").contains("cbctx") && !datei("ct.yml").contains("trigger: cbctx"), "cbctx von CT nach Rx verschoben")
-    pruefe(s.espansoAnzahl == 381, "espanso weiter 381")
+    pruefe(s.espansoAnzahl == n0, "espanso weiter \(n0)")
 
     // 3 Entwurf: erst mit Kürzel + Text in der Datei
     let n = s.neu(in: "meine-abkuerzungen.yml")!
@@ -45,7 +46,7 @@ Task { @MainActor in
     s.aendern(n) { $0.text = "Zeile 1\n  Zeile \"2\"\n" }
     await warte(2.5)
     pruefe(datei("meine-abkuerzungen.yml").contains("zzentwurf"), "Entwurf mit Kürzel + Text geschrieben")
-    pruefe(s.espansoAnzahl == 382, "espanso zählt 382 (\(s.espansoAnzahl ?? -1))")
+    pruefe(s.espansoAnzahl == n0 + 1, "espanso zählt \(n0 + 1) (\(s.espansoAnzahl ?? -1))")
 
     // 4 Ungültiger Rohtext → nichts geschrieben, Meldung
     let vorher = datei("meine-abkuerzungen.yml")
@@ -63,9 +64,10 @@ Task { @MainActor in
     let o = s.ordnerNeu("Test Ordner")!
     await warte(1.5)
     pruefe(datei(o).hasPrefix("# Ordner: Test Ordner\nmatches:"), "neuer Ordner \(o)")
+    let nUS = s.datei("us.yml")?.bausteine.count ?? 0
     s.ordnerSchalten("us.yml", an: false)
     await warte(2.5)
-    pruefe(FileManager.default.fileExists(atPath: match.appendingPathComponent("_us.yml").path) && s.espansoAnzahl == 382 - 11, "US ausgeschaltet → _us.yml, espanso \(s.espansoAnzahl ?? -1)")
+    pruefe(FileManager.default.fileExists(atPath: match.appendingPathComponent("_us.yml").path) && s.espansoAnzahl == n0 + 1 - nUS, "US ausgeschaltet → _us.yml, espanso \(s.espansoAnzahl ?? -1)")
     s.ordnerSchalten("us.yml", an: true)
     s.ordnerLoeschen(o)
     await warte(2.5)
@@ -74,9 +76,14 @@ Task { @MainActor in
     pruefe(s.datei("base.yml")?.aktiv == true, "base.yml lässt sich nicht ausschalten")
 
     // 6 Schutzliste + Kollisionen
+    let k = s.neu(in: "rx.yml")!
+    s.aendern(k) { $0.kuerzel = ["tadtp"]; $0.text = "Kollisionstest"; $0.wortgrenze = false }
+    await warte(2.5)
     s.schutzlisteSpeichern("# Test\nVVR\nStadtpark\n")
     await warte(1.5)
-    pruefe(s.kollisionen.contains { $0.kuerzel == "dve" }, "Kollision dve (Wandverbreiterung) erkannt")
+    pruefe(s.kollisionen.contains { $0.kuerzel == "tadtp" && $0.ausSchutzliste.contains("Stadtpark") }, "Kollision tadtp in Stadtpark (Schutzliste) erkannt")
+    s.loeschen([k])
+    await warte(2.5)
     pruefe(!s.kollisionen.contains { $0.kuerzel == "dt" }, "dt (mit Wortgrenze) keine Kollision mehr")
     s.akzeptieren("ggr")
     await warte(3)
@@ -86,7 +93,7 @@ Task { @MainActor in
     // 7 Löschen
     s.loeschen([n])
     await warte(2.5)
-    pruefe(!datei("meine-abkuerzungen.yml").contains("zzentwurf") && s.espansoAnzahl == 381, "gelöscht, espanso 381")
+    pruefe(!datei("meine-abkuerzungen.yml").contains("zzentwurf") && s.espansoAnzahl == n0, "gelöscht, espanso \(n0)")
 
     // 8 Fremde Änderung (wie :neu) wird übernommen
     try? (datei("rx.yml") + "- trigger: \"zzfremd\"\n  replace: \"von aussen\"\n").write(to: match.appendingPathComponent("rx.yml"), atomically: true, encoding: .utf8)

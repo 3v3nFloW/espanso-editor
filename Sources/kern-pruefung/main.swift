@@ -41,6 +41,17 @@ for name in dateien {
     do { _ = try verschoben.dateitext() } catch { melde("andere Einrückung: \(error.localizedDescription)") }
 }
 
+// 5 Entfernen lässt Kommentare über dem Eintrag in der Datei
+do {
+    let t = "# Ordner: Test\nmatches:\n- trigger: a\n  replace: A\n\n# ── Abschnitt B ──\n# Hinweis\n- trigger: b\n  replace: B\n- trigger: c\n  replace: C\n# Schluss\n- trigger: d\n  replace: D\n"
+    var d = MatchDatei.lesen(text: t, dateiname: "t.yml")
+    let ids = Set(d.bausteine.filter { ["b", "d"].contains($0.hauptkuerzel) }.map(\.id))
+    _ = d.entfernen(ids)
+    let neu = try d.dateitext()
+    let erwartet = "# Ordner: Test\nmatches:\n- trigger: a\n  replace: A\n\n# ── Abschnitt B ──\n# Hinweis\n- trigger: c\n  replace: C\n# Schluss\n"
+    if neu != erwartet { melde("Entfernen behält Kommentare nicht:\n" + neu) } else { print("Entfernen: Kommentare bleiben ✓") }
+} catch { melde("Entfernen: \(error.localizedDescription)") }
+
 // 4
 let einfache = alle.filter { !$0.komplex && !$0.text.isEmpty }.map { ImportEintrag(kuerzel: $0.hauptkuerzel, text: $0.text, wortgrenze: $0.wortgrenze, ordner: $0.ordnerID) }
 let zurueck = Importe.csvLesen(Importe.csvSchreiben(einfache))

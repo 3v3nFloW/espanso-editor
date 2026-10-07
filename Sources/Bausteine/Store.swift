@@ -250,9 +250,8 @@ final class Store {
     func loeschen(_ ids: Set<UUID>) {
         var betroffen: Set<String> = []
         for (di, d) in dateien.enumerated() where !d.nurLesen {
-            let weg = d.bausteine.filter { ids.contains($0.id) }
-            guard !weg.isEmpty else { continue }
-            dateien[di].bausteine.removeAll { ids.contains($0.id) }
+            guard d.bausteine.contains(where: { ids.contains($0.id) }) else { continue }
+            let weg = dateien[di].entfernen(ids)   // Kommentare darüber bleiben in der Datei
             weg.forEach { protokoll("gelöscht: \($0.hauptkuerzel)") }
             betroffen.insert(d.id)
         }
@@ -265,9 +264,8 @@ final class Store {
         guard let zi = dateien.firstIndex(where: { $0.id == ziel }), !dateien[zi].nurLesen else { return }
         var betroffen: Set<String> = [ziel]
         for di in dateien.indices where di != zi && !dateien[di].nurLesen {
-            let weg = dateien[di].bausteine.filter { ids.contains($0.id) }
-            guard !weg.isEmpty else { continue }
-            dateien[di].bausteine.removeAll { ids.contains($0.id) }
+            guard dateien[di].bausteine.contains(where: { ids.contains($0.id) }) else { continue }
+            let weg = dateien[di].entfernen(ids)   // Abschnittskommentare bleiben im Quellordner
             for var b in weg {
                 b.ordnerID = ziel; b.quelle = nil
                 dateien[zi].bausteine.append(b)

@@ -214,6 +214,41 @@ public struct MatchDatei: Identifiable, Hashable, Sendable {
         return d
     }
 
+    // MARK: Entfernen
+
+    /// Nimmt Einträge heraus. Kommentare über einem entfernten Eintrag (z. B. Abschnittsköpfe wie
+    /// „# ── aus typinator_us_dt_set.yml ──“) bleiben in der Datei: sie gehen an den nächsten Eintrag über,
+    /// beim letzten Eintrag ans Dateiende.
+    public mutating func entfernen(_ ids: Set<UUID>) -> [Baustein] {
+        var weg: [Baustein] = []
+        var uebrig: [Baustein] = []
+        var mitnehmen: [String] = []
+        let einzug = String(repeating: " ", count: einrueckung)
+        for var b in bausteine {
+            if ids.contains(b.id) {
+                if b.vorspann.contains(where: { $0.trimmingCharacters(in: .whitespaces).hasPrefix("#") }) {
+                    mitnehmen += b.vorspann
+                }
+                b.vorspann = []
+                weg.append(b)
+            } else {
+                if !mitnehmen.isEmpty {
+                    if let q = b.quelle {
+                        b.quelle = mitnehmen.map { ($0.isEmpty ? "" : einzug + $0) + "\n" }.joined() + q
+                    }
+                    b.vorspann = mitnehmen + b.vorspann
+                    mitnehmen = []
+                }
+                uebrig.append(b)
+            }
+        }
+        if !mitnehmen.isEmpty {
+            fuss = mitnehmen.map { ($0.isEmpty ? "" : einzug + $0) + "\n" } + fuss
+        }
+        bausteine = uebrig
+        return weg
+    }
+
     // MARK: Schreiben
 
     /// Erzeugt den Dateitext und prüft ihn, bevor irgendetwas auf die Platte geht:
