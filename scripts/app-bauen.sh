@@ -1,0 +1,41 @@
+#!/bin/zsh
+# Baut Bausteine.app (Release) nach build/ und installiert sie mit --installieren nach /Applications.
+set -euo pipefail
+cd "${0:A:h}/.."
+# Das macOS-27-SDK der Command Line Tools verlangt für @State ein Makro-Plugin, das nur Xcode mitbringt → 26.x-SDK nehmen
+SDK=$(ls -d /Library/Developer/CommandLineTools/SDKs/MacOSX26*.sdk 2>/dev/null | sort -V | tail -1)
+[[ -n "$SDK" ]] && export SDKROOT="$SDK"
+swift build -c release --product Bausteine
+VERSION=$(git describe --tags --always 2>/dev/null || echo 0.1)
+APP=build/Bausteine.app
+rm -rf "$APP"; mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+cp .build/release/Bausteine "$APP/Contents/MacOS/Bausteine"
+[[ -f Resources/AppIcon.icns ]] && cp Resources/AppIcon.icns "$APP/Contents/Resources/"
+cat > "$APP/Contents/Info.plist" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>CFBundleName</key><string>Bausteine</string>
+  <key>CFBundleDisplayName</key><string>Bausteine</string>
+  <key>CFBundleIdentifier</key><string>vet.kappa1.bausteine-editor</string>
+  <key>CFBundleExecutable</key><string>Bausteine</string>
+  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleShortVersionString</key><string>0.1</string>
+  <key>CFBundleVersion</key><string>${VERSION}</string>
+  <key>CFBundleIconFile</key><string>AppIcon</string>
+  <key>LSMinimumSystemVersion</key><string>14.0</string>
+  <key>LSApplicationCategoryType</key><string>public.app-category.productivity</string>
+  <key>NSHighResolutionCapable</key><true/>
+  <key>NSAppleEventsUsageDescription</key><string>Zum Import der Bausteine aus Typinator.</string>
+  <key>CFBundleDevelopmentRegion</key><string>de</string>
+</dict></plist>
+PLIST
+codesign --force --sign - --identifier vet.kappa1.bausteine-editor "$APP"
+echo "gebaut: $APP ($VERSION)"
+if [[ "${1:-}" == "--installieren" ]]; then
+  osascript -e 'tell application id "vet.kappa1.bausteine-editor" to quit' 2>/dev/null || true
+  sleep 1
+  rm -rf /Applications/Bausteine.app
+  cp -R "$APP" /Applications/
+  echo "installiert: /Applications/Bausteine.app"
+fi
