@@ -6,6 +6,12 @@ enum Seitenwahl: Hashable {
     case alle, ordner(String), kollisionen, doppelte
 }
 
+/// Worin die Suche sucht: Kürzel und Text, nur Kürzel oder nur Text (Expansion).
+enum Suchbereich: String, CaseIterable {
+    case alles, kuerzel, text
+    var titel: String { switch self { case .alles: L("Alle"); case .kuerzel: L("Kürzel"); case .text: L("Text") } }
+}
+
 enum Verteilstatus: Equatable {
     case gesichert, ausstehend, laeuft, fehler(String), ohneGit
 }
@@ -24,6 +30,15 @@ final class Store {
     var seite: Seitenwahl = .alle
     var suche = ""
     var auchAusgeschaltete = false
+    var ganzesWort = false
+    var suchbereich: Suchbereich = Suchbereich(rawValue: UserDefaults.standard.string(forKey: "suchbereich") ?? "") ?? .alles {
+        didSet {
+            // Testläufe dürfen Nutzer-Einstellungen nicht schreiben
+            let env = ProcessInfo.processInfo.environment
+            guard env["BAUSTEINE_SCHNAPPSCHUSS"] == nil, env["BAUSTEINE_STRESS"] == nil else { return }
+            UserDefaults.standard.set(suchbereich.rawValue, forKey: "suchbereich")
+        }
+    }
     var auswahl: Set<UUID> = []
     var sortierung: [KeyPathComparator<Baustein>] = [KeyPathComparator(\.hauptkuerzel, comparator: .localizedStandard)]
 
@@ -170,10 +185,18 @@ final class Store {
             let d = doppelteKuerzel; l = aktiveBausteine.filter { $0.kuerzel.contains(where: d.contains) }
         }
         if !q.isEmpty {
+            // „Ganzes Wort“: kein Buchstabe/keine Ziffer direkt davor oder danach (hgr findet dann nicht „hochgradig“)
+            let muster = "(?<![\\p{L}\\p{N}])" + NSRegularExpression.escapedPattern(for: q) + "(?![\\p{L}\\p{N}])"
+            let wort = ganzesWort
+            func trifft(_ s: String) -> Bool {
+                wort ? s.range(of: muster, options: [.regularExpression, .caseInsensitive]) != nil
+                     : s.range(of: q, options: [.caseInsensitive, .diacriticInsensitive]) != nil
+            }
+            let imKuerzel = suchbereich != .text, imText = suchbereich != .kuerzel
             l = l.filter { b in
-                b.kuerzel.contains { $0.range(of: q, options: [.caseInsensitive, .diacriticInsensitive]) != nil }
-                    || b.text.range(of: q, options: [.caseInsensitive, .diacriticInsensitive]) != nil
-                    || (b.komplex && b.roh.range(of: q, options: [.caseInsensitive, .diacriticInsensitive]) != nil)
+                (imKuerzel && b.kuerzel.contains(where: trifft))
+                    || (imText && trifft(b.text))
+                    || (imText && b.komplex && trifft(b.roh))
             }
         }
         return l.sorted(using: sortierung)

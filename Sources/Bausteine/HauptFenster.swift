@@ -9,6 +9,14 @@ struct HauptFenster: View {
     @State private var umbenennenName = ""
     @FocusState private var sucheFokus: Bool
 
+    private var suchHinweis: String {
+        switch store.suchbereich {
+        case .alles: L("Kürzel oder Text suchen")
+        case .kuerzel: L("Kürzel suchen")
+        case .text: L("Text suchen")
+        }
+    }
+
     var body: some View {
         @Bindable var store = store
         NavigationSplitView {
@@ -28,9 +36,16 @@ struct HauptFenster: View {
             Color.clear.frame(height: Statusleiste.hoehe)
             }
         }
-        .searchable(text: $store.suche, placement: .toolbar, prompt: L("Kürzel oder Text suchen"))
+        .searchable(text: $store.suche, placement: .toolbar, prompt: suchHinweis)
         .toolbar {
             ToolbarItemGroup {
+                Picker(L("Suchen in"), selection: $store.suchbereich) {
+                    ForEach(Suchbereich.allCases, id: \.self) { Text($0.titel).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .help(L("Suchen in Kürzel und Text, nur in Kürzeln oder nur im Text (Expansion)"))
+                Toggle(isOn: $store.ganzesWort) { Label(L("Ganzes Wort"), systemImage: "textformat.abc") }
+                    .help(L("Nur als ganzes Wort finden — „hgr“ findet dann nicht „hochgradig“"))
                 Toggle(isOn: $store.auchAusgeschaltete) { Label(L("Ausgeschaltete durchsuchen"), systemImage: "eye.slash") }
                     .help(L("Auch ausgeschaltete Ordner (z. B. Autokorrektur) durchsuchen"))
                 Button { _ = store.neu() } label: { Label(L("Neuer Baustein"), systemImage: "plus") }

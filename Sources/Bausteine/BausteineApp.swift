@@ -192,7 +192,8 @@ enum ImportExport {
 }
 
 /// Testhilfe: BAUSTEINE_SCHNAPPSCHUSS=<png> rendert das Fenster unsichtbar in eine Datei und beendet die App.
-/// BAUSTEINE_SCHNAPPSCHUSS_KUERZEL=<kürzel> wählt vorher einen Baustein, BAUSTEINE_SCHNAPPSCHUSS_SEITE=kollisionen die Kollisionsliste.
+/// BAUSTEINE_SCHNAPPSCHUSS_KUERZEL=<kürzel> wählt vorher einen Baustein, BAUSTEINE_SCHNAPPSCHUSS_SEITE=kollisionen die Kollisionsliste,
+/// BAUSTEINE_SCHNAPPSCHUSS_SUCHE=<text> + _SUCHBEREICH=alles|kuerzel|text füllen die Suche.
 @MainActor
 enum Schnappschuss {
     static func vielleicht(_ store: Store) {
@@ -242,6 +243,9 @@ enum Schnappschuss {
         Task {
             try? await Task.sleep(for: .seconds(4))
             if env["BAUSTEINE_SCHNAPPSCHUSS_SEITE"] == "kollisionen" { store.seite = .kollisionen }
+            if let q = env["BAUSTEINE_SCHNAPPSCHUSS_SUCHE"] { store.suche = q }
+            if env["BAUSTEINE_SCHNAPPSCHUSS_WORT"] != nil { store.ganzesWort = true }
+            if let b = env["BAUSTEINE_SCHNAPPSCHUSS_SUCHBEREICH"].flatMap(Suchbereich.init(rawValue:)) { store.suchbereich = b }
             if let g = env["BAUSTEINE_SCHNAPPSCHUSS_SCHRIFT"].flatMap(Double.init) { store.schrift = g }
             if let k = env["BAUSTEINE_SCHNAPPSCHUSS_KUERZEL"], let b = store.aktiveBausteine.first(where: { $0.hauptkuerzel == k }) { store.auswahl = [b.id] }
             for w in NSApp.windows where w.frame.width > 500 { w.setFrame(NSRect(x: 0, y: 0, width: 1400, height: 860), display: true) }
