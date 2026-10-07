@@ -1,43 +1,91 @@
-# Espanso Editor (macOS)
+# Espanso Editor
 
-*Inoffiziell — nicht vom espanso-Projekt; ein eigenständiger Editor für dessen YAML-Dateien.*
+A native macOS editor for your [espanso](https://espanso.org) snippets — folders like Typinator, one searchable table,
+spell checking, and a check for abbreviations that fire in the middle of real words.
 
-Übersichtliche Oberfläche für die Textbausteine von [espanso](https://espanso.org): Ordner wie in Typinator,
-Tabelle mit Suche über alle Ordner, Rechtschreibprüfung (macOS + optional LanguageTool), Kollisionsprüfung
-für Kürzel, die mitten in Wörtern auslösen, Import (CSV, espanso-YAML, Typinator) und Export (ZIP, CSV).
+*Unofficial. Not affiliated with the espanso project — it only reads and writes espanso's YAML files.*
 
-- **Ordner = eine YAML-Datei in `match/`.** Anzeigename aus der Kopfzeile `# Ordner: …`. Ausgeschaltet = Datei mit `_` vorne
-  (espanso lädt sie nicht). `base.yml` lässt sich nicht ausschalten — espanso legt sie sonst neu an.
-- **Kommentare bleiben erhalten.** Nur geänderte Einträge werden neu geschrieben, alles andere bleibt Zeichen für Zeichen.
-  Vor jedem Schreiben wird die neue Datei gelesen und mit den erwarteten Bausteinen verglichen; danach muss
-  `espanso match list` dieselbe Anzahl liefern, sonst wird die Änderung zurückgenommen.
-- **Sofort aktiv:** Speichern ohne Knopf, espanso-Neustart ≈1 s nach der letzten Änderung.
-- **git:** Liegen die Bausteine in einem git-Repo, wird nach 30 s Ruhe (oder ⌘S, oder beim Beenden) committet und gepusht.
-- **Schutzliste / Kollisionen:** `match/_bausteine/schutzwoerter.txt` (wird mitverteilt) plus ein lokaler Wortschatz
-  (`~/Library/Application Support/Espanso Editor/wortschatz.txt`, `wort<TAB>anzahl`, aus eigenen Texten aufbaubar).
+[Deutsch weiter unten](#deutsch)
 
-## Bauen
+![Overview](docs/uebersicht.png)
 
-Nur Command Line Tools nötig (kein Xcode):
+## Features
+
+- **Folders = files.** Every `.yml` in espanso's `match/` folder is a folder in the sidebar. Rename, create, switch off
+  (prefix `_`, espanso then ignores the file) — no YAML editing needed. Drag snippets onto a folder to move them.
+- **One table, instant search** across all folders (abbreviation and text), showing where each hit lives.
+- **Saves as you type.** The change is active in espanso about a second later. If your snippets live in a git
+  repository, the editor commits and pushes after 30 s of quiet (or ⌘S, or when you quit).
+- **Your comments stay.** Unchanged entries are written back byte for byte; only edited entries are re-generated.
+  Before anything touches the disk, the new file is parsed again and compared with what it must contain, and afterwards
+  `espanso match list` must report the same number of snippets — otherwise the change is rolled back.
+- **Spell checking:** macOS (typos) always; optionally [LanguageTool](https://languagetool.org) for grammar and
+  punctuation (free API or your Premium key; text is sent to languagetool.org only when you switch it on).
+- **Collisions:** abbreviations without word boundary that fire inside words you actually write (e.g. `dt` inside
+  “Stadtpark”). Sources: a shared protection list (`match/_bausteine/schutzwoerter.txt`) and an optional local
+  vocabulary built from your own texts. One click: set word boundary, rename, or keep.
+- Duplicate abbreviations, entries with variables/forms editable as raw YAML, import (CSV, espanso YAML, running
+  Typinator), export (ZIP in espanso format, CSV), font size slider (⌘+ / ⌘− / ⌘0).
+
+![Collisions](docs/kollisionen.png)
+
+## Install
+
+1. Download `EspansoEditor-<version>-macOS.zip` from [Releases](../../releases), unzip, move **Espanso Editor.app** to
+   *Applications*.
+2. The app is not notarized (no Apple developer account). On first launch macOS blocks it: open
+   *System Settings › Privacy & Security* and click **Open Anyway** — or run
+   `xattr -dr com.apple.quarantine "/Applications/Espanso Editor.app"`.
+
+Requires macOS 14 or later and an installed espanso.
+
+## Double Backspace
+
+espanso reverts an expansion on the *first* Backspace (`undo_backspace`). A patch that adds
+`undo_backspace_presses: 2` (revert only on two quick presses) plus fixes for related Backspace issues lives in
+[3v3nFloW/espanso, branch `kappa1`](https://github.com/3v3nFloW/espanso/tree/kappa1) and is offered upstream as pull requests.
+
+## Build from source
+
+Command Line Tools are enough (no Xcode):
 
 ```sh
-swift scripts/icon-bauen.swift "$PWD"  # Icon aus Resources/icon-entwuerfe.jpg (mittlerer Entwurf)
-./scripts/app-bauen.sh                # → build/Espanso Editor.app
-./scripts/app-bauen.sh --installieren # → /Applications
+./scripts/app-bauen.sh                 # → build/Espanso Editor.app
+./scripts/app-bauen.sh --installieren  # → /Applications
+swift scripts/icon-bauen.swift "$PWD"  # app icon from Resources/icon-entwuerfe.jpg
 ```
 
-Das macOS-27-SDK der Command Line Tools führt `@State` als Makro ein, dessen Plugin nur Xcode mitbringt —
-das Skript baut deshalb gegen das neueste installierte macOS-26-SDK.
+The macOS 27 SDK of the Command Line Tools turns `@State` into a macro whose plugin only ships with Xcode, so the script
+builds against the newest macOS 26 SDK.
 
-## Prüfen
+Self-tests (read-only on your files, or against a throw-away copy):
 
 ```sh
-SDKROOT=…/MacOSX26.5.sdk swift run kern-pruefung [match-ordner]   # liest nur: Round-Trip aller Einträge, CSV
-# Store-Abläufe gegen eine Kopie (nie gegen den echten Ordner):
-git clone --bare <repo> /tmp/t/gegenstelle.git && git clone /tmp/t/gegenstelle.git /tmp/t/espanso
+SDKROOT=…/MacOSX26.5.sdk swift run kern-pruefung [match-folder]   # round-trip of every entry, CSV
+git clone --bare <repo> /tmp/t/remote.git && git clone /tmp/t/remote.git /tmp/t/espanso
 ESPANSO_CONFIG_DIR=/tmp/t/espanso BAUSTEINE_KEIN_NEUSTART=1 swift run store-pruefung
 ```
 
-Lizenz: GPL-3.0-or-later.
+## License
+
+GPL-3.0-or-later — see [LICENSE](LICENSE).
+
+---
+
+## Deutsch
+
+Ein Mac-Editor für deine espanso-Bausteine: Ordner wie bei Typinator, eine durchsuchbare Tabelle,
+Rechtschreibprüfung und eine Prüfung auf Kürzel, die mitten in echten Wörtern auslösen. *Inoffiziell, nicht vom
+espanso-Projekt.*
+
+- **Ordner = Datei** in `match/`; ausschalten = `_` vor dem Dateinamen. Bausteine per Ziehen verschieben.
+- **Speichert beim Tippen**, nach etwa 1 s in espanso aktiv; liegt der Ordner in einem git-Repo, wird nach 30 s Ruhe
+  committet und gepusht.
+- **Kommentare bleiben erhalten**; jede Datei wird vor dem Schreiben gegengeprüft, danach muss espanso gleich viele
+  Bausteine laden, sonst wird zurückgenommen.
+- **Rechtschreibung:** macOS (Tippfehler) immer, LanguageTool (Kommas, Grammatik) auf Wunsch.
+- **Kollisionen:** Schutzliste (`match/_bausteine/schutzwoerter.txt`) und eigener Wortschatz aus alten Texten.
+- **Installation:** ZIP aus den Releases, App nach *Programme*; beim ersten Start unter *Systemeinstellungen ›
+  Datenschutz & Sicherheit* auf **Trotzdem öffnen** klicken (die App ist nicht notarisiert).
 
 Built in Switzerland with ♥ by Kappa1

@@ -1,0 +1,2 @@
+# Schutzliste: Wörter, in denen kein Kürzel auslösen darf
+Stadtpark

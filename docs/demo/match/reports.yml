@@ -1,0 +1,17 @@
+# Ordner: Report templates
+matches:
+- trigger: rptok
+  replace: "No abnormalities detected in the examined region. Normal size, shape and position of the visualised structures."
+  word: true
+- trigger: rptfu
+  replace: "Follow-up examination recommended in 6–8 weeks, or earlier if clinical signs worsen."
+  word: true
+- trigger: bdnorm
+  replace: "Die untersuchte Region stellt sich unauffällig dar. Normale Grösse, Form und Lage der dargestellten Strukturen."
+  word: true
+- trigger: ggr
+  replace: geringgradig
+- trigger: mgr
+  replace: mittelgradig
+- trigger: hgr
+  replace: hochgradig

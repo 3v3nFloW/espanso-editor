@@ -1,0 +1,11 @@
+# Ordner: Adressen
+matches:
+- trigger: adrfirma
+  replace: "Beispiel AG\nMusterstrasse 1\n8000 Zürich"
+  word: true
+- trigger: tel
+  replace: "+41 00 000 00 00"
+  word: true
+- trigger: www
+  replace: "https://example.org"
+  word: true

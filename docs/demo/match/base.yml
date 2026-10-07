@@ -1,0 +1,14 @@
+# Ordner: System
+matches:
+  - trigger: ":date"
+    replace: "{{today}}"
+    vars:
+      - name: today
+        type: date
+        params:
+          format: "%Y-%m-%d"
+  - trigger: ":clip"
+    replace: "{{clipboard}}"
+    vars:
+      - name: clipboard
+        type: clipboard

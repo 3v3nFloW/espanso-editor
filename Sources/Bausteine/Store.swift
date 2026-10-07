@@ -64,7 +64,8 @@ final class Store {
         konfigOrdner = Espanso.konfigOrdner()
         matchOrdner = konfigOrdner.appendingPathComponent("match")
         let ordner = matchOrdner
-        let wortschatzURL = URL(fileURLWithPath: UserDefaults.standard.string(forKey: "wortschatzPfad") ?? Store.standardWortschatz.path)
+        let wortschatzURL = ProcessInfo.processInfo.environment["BAUSTEINE_WORTSCHATZ"].map { URL(fileURLWithPath: $0) }
+            ?? URL(fileURLWithPath: UserDefaults.standard.string(forKey: "wortschatzPfad") ?? Store.standardWortschatz.path)
         Task {
             // Start: alles im Hintergrund vorbereiten und der Oberfläche in EINEM Schritt übergeben. Jede weitere
             // Änderung kurz nach dem ersten Füllen der Tabelle (Kollisionen, git-Daten, espanso-Zählung) löste
@@ -358,7 +359,8 @@ final class Store {
     }
 
     static var standardWortschatz: URL {
-        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Espanso Editor/wortschatz.txt")
+        if let p = ProcessInfo.processInfo.environment["BAUSTEINE_WORTSCHATZ"] { return URL(fileURLWithPath: p) }   // Tests/Demo
+        return FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Espanso Editor/wortschatz.txt")
     }
 
     func kollisionenBerechnen() {
@@ -563,6 +565,11 @@ enum Schrift {
     static let bereich = 10.0...24.0
     static var groesse: Double {
         get { UserDefaults.standard.object(forKey: "schriftgroesse") as? Double ?? standard }
-        set { UserDefaults.standard.set(min(max(newValue, bereich.lowerBound), bereich.upperBound), forKey: "schriftgroesse") }
+        set {
+            // Test-/Schnappschussläufe dürfen die Einstellung des Nutzers nicht überschreiben
+            let env = ProcessInfo.processInfo.environment
+            guard env["BAUSTEINE_SCHNAPPSCHUSS"] == nil, env["BAUSTEINE_STRESS"] == nil else { return }
+            UserDefaults.standard.set(min(max(newValue, bereich.lowerBound), bereich.upperBound), forKey: "schriftgroesse")
+        }
     }
 }

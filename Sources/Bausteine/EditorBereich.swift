@@ -187,7 +187,8 @@ struct BausteinEditor: View {
     }
 
     func ltPruefen(_ text: String) async {
-        guard ltAktiv else { treffer = []; return }
+        // Schnappschuss-/Testmodus: nichts an LanguageTool senden
+        guard ltAktiv, ProcessInfo.processInfo.environment["BAUSTEINE_SCHNAPPSCHUSS"] == nil else { treffer = []; return }
         try? await Task.sleep(for: .milliseconds(1200))
         guard !Task.isCancelled else { return }
         ltLaeuft = true

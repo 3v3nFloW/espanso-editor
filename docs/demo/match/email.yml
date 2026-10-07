@@ -1,0 +1,14 @@
+# Ordner: E-Mail
+matches:
+- trigger: mfg
+  replace: "Mit freundlichen Grüssen\nAnna Muster"
+  word: true
+- trigger: kr
+  replace: "Kind regards,\nAnna Muster"
+  word: true
+- trigger: thx
+  replace: "Thank you for your message — I will get back to you shortly."
+  word: true
+- trigger: abw
+  replace: "Ich bin bis Freitag abwesend und habe nur eingeschränkt Zugriff auf meine E-Mails. In dringenden Fällen wenden Sie sich bitte an info@example.org."
+  word: true

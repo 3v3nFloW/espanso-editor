@@ -1,0 +1,6 @@
+geringgradig	120
+hochgradig	80
+mittelgradig	60
+Telefon	40
+Stadtpark	5
+Landstrasse	9
