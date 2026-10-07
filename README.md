@@ -27,6 +27,9 @@ Typinator is a trademark of Ergonis Software; this project is not affiliated wit
 - **Collisions:** abbreviations without word boundary that fire inside words you actually write (e.g. `dt` inside
   “Stadtpark”). Sources: a shared protection list (`match/_bausteine/schutzwoerter.txt`) and an optional local
   vocabulary built from your own texts. One click: set word boundary, rename, or keep.
+- **Adapt case** per snippet (espanso `propagate_case`): at the start of a sentence type `Ggr` and get “Geringgradig”;
+  off means only the exact abbreviation fires. On for new snippets; abbreviations with capital letters (`MDT`) stay exact.
+  Switch several at once from the context menu.
 - Duplicate abbreviations, entries with variables/forms editable as raw YAML, import (CSV, espanso YAML, running
   Typinator), export (ZIP in espanso format, CSV), font size slider (⌘+ / ⌘− / ⌘0).
 - **English and German** user interface, following the macOS language.
