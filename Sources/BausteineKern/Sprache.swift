@@ -68,6 +68,7 @@ enum Englisch {
         "Kürzel suchen": "Search abbreviations",
         "Text suchen": "Search text",
         "Suchen in": "Search in",
+        "Neuer Ordner (⇧⌘N)": "New folder (⇧⌘N)",
         "Ganzes Wort": "Whole word",
         "Nur als ganzes Wort finden — „hgr“ findet dann nicht „hochgradig“": "Match whole words only — “hgr” then no longer finds “hochgradig”",
         "Suchen in Kürzel und Text, nur in Kürzeln oder nur im Text (Expansion)": "Search abbreviations and text, abbreviations only, or text (expansion) only",

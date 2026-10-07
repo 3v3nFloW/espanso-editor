@@ -128,9 +128,14 @@ struct Seitenleiste: View {
         .font(.system(size: schrift))
         .environment(\.defaultMinListRowHeight, schrift + 12)
         .listStyle(.sidebar)
-        .safeAreaInset(edge: .bottom) {
-            Button { neuerOrdner() } label: { Label(L("Neuer Ordner"), systemImage: "folder.badge.plus") }
-                .buttonStyle(.borderless).padding(8).frame(maxWidth: .infinity, alignment: .leading)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            VStack(spacing: 0) {
+                Button { neuerOrdner() } label: { Label(L("Neuer Ordner"), systemImage: "folder.badge.plus") }
+                    .buttonStyle(.borderless).padding(8).frame(maxWidth: .infinity, alignment: .leading)
+                    .help(L("Neuer Ordner (⇧⌘N)"))
+                // Die Statusleiste läuft über die ganze Fensterbreite und lag sonst über diesem Knopf
+                Color.clear.frame(height: Statusleiste.hoehe)
+            }
         }
     }
 }
