@@ -33,7 +33,8 @@ PLIST
 codesign --force --sign - --identifier vet.kappa1.espanso-editor "$APP"
 echo "gebaut: $APP ($VERSION)"
 if [[ "${1:-}" == "--installieren" ]]; then
-  osascript -e 'tell application id "vet.kappa1.espanso-editor" to quit' 2>/dev/null || true
+  # nur beenden, wenn sie läuft (ein „tell … to quit“ würde sie sonst erst starten)
+  if pgrep -f "Espanso Editor.app/Contents/MacOS" >/dev/null; then osascript -e 'tell application id "vet.kappa1.espanso-editor" to quit' 2>/dev/null || true; fi
   sleep 1
   rm -rf "/Applications/Espanso Editor.app" /Applications/Bausteine.app   # Bausteine.app = alter Name bis 07.10.26
   cp -R "$APP" /Applications/
