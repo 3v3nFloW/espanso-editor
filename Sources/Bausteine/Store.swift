@@ -438,12 +438,13 @@ final class Store {
 
     private func nachDemSchreiben() {
         kollisionenBerechnen()
-        // espanso sieht Änderungen hinter Symlinks nicht selbst → kurz nach der letzten Änderung neu starten (≈0,8 s)
+        // Original-espanso sieht Änderungen hinter Symlinks nicht selbst → kurz nach der letzten Änderung neu starten (≈0,8 s);
+        // der kappa1-Fork lädt selbst nach — ein Neustart dort holt nur die Bedienungshilfen-Prüfung wieder hervor
         neustartAufgabe?.cancel()
         neustartAufgabe = Task {
             try? await Task.sleep(for: .seconds(1))
             guard !Task.isCancelled else { return }
-            await Task.detached { Espanso.neustarten() }.value
+            await Task.detached { Espanso.neustartenWennNoetig() }.value
             await espansoZaehlen(versatzSetzen: false)
         }
         gitPlanen()
@@ -509,7 +510,7 @@ final class Store {
         await schreiben()
         gitAufgabe?.cancel()   // schreiben() hat eine neue 30-s-Verteilung geplant — wir verteilen gleich selbst
         if repo != nil, verteilstatus != .gesichert || repo?.hatAenderungen == true { await sichern() }
-        if neustartAufgabe != nil { neustartAufgabe?.cancel(); await Task.detached { Espanso.neustarten() }.value }
+        if neustartAufgabe != nil { neustartAufgabe?.cancel(); await Task.detached { Espanso.neustartenWennNoetig() }.value }
     }
 
     // MARK: Import

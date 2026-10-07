@@ -66,6 +66,22 @@ public enum Espanso {
         return Shell.run(p, ["status"], timeout: 10).aus.contains("running")
     }
 
+    /// Lädt der laufende espanso Änderungen von selbst nach? Ja, wenn match/config keine Symlinks sind (das kann jedes espanso)
+    /// oder wenn es der kappa1-Fork ist (beobachtet auch Symlink-Ziele). Sonst braucht es nach jeder Änderung `espanso restart`.
+    public static let siehtAenderungenSelbst: Bool = {
+        guard let p = programm else { return false }
+        if Shell.run(p, ["--version"], timeout: 10).aus.contains("kappa1") { return true }
+        let ordner = konfigOrdner()
+        return ["match", "config"].allSatisfy {
+            (try? FileManager.default.destinationOfSymbolicLink(atPath: ordner.appendingPathComponent($0).path)) == nil
+        }
+    }()
+
+    /// Nach einer Änderung: nur neu starten, wenn espanso sie nicht selbst nachlädt.
+    public static func neustartenWennNoetig() {
+        if !siehtAenderungenSelbst { neustarten() }
+    }
+
     public static func neustarten() {
         // Testbetrieb gegen eine Kopie (ESPANSO_CONFIG_DIR): den echten Dienst nicht anfassen
         guard ProcessInfo.processInfo.environment["BAUSTEINE_KEIN_NEUSTART"] == nil, let p = programm else { return }
