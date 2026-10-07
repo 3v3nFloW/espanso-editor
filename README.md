@@ -13,7 +13,8 @@ spell checking, and a check for abbreviations that fire in the middle of real wo
 
 - **Folders = files.** Every `.yml` in espanso's `match/` folder is a folder in the sidebar. Rename, create, switch off
   (prefix `_`, espanso then ignores the file) — no YAML editing needed. Drag snippets onto a folder to move them.
-- **One table, instant search** across all folders (abbreviation and text), showing where each hit lives.
+- **One table, instant search** across all folders, showing where each hit lives. Search abbreviations and text, only
+  abbreviations or only the expansion text, optionally as a whole word (`hgr` then no longer finds “hochgradig”).
 - **Saves as you type.** The change is active in espanso about a second later. If your snippets live in a git
   repository, the editor commits and pushes after 30 s of quiet (or ⌘S, or when you quit).
 - **Your comments stay.** Unchanged entries are written back byte for byte; only edited entries are re-generated.
@@ -64,7 +65,7 @@ Self-tests (read-only on your files, or against a throw-away copy):
 
 ```sh
 SDKROOT=…/MacOSX26.5.sdk swift run kern-pruefung [match-folder]   # round-trip of every entry, CSV
-git clone --bare <repo> /tmp/t/remote.git && git clone /tmp/t/remote.git /tmp/t/espanso
+git clone --bare <repo> /tmp/t/gegenstelle.git && git clone /tmp/t/gegenstelle.git /tmp/t/espanso
 ESPANSO_CONFIG_DIR=/tmp/t/espanso BAUSTEINE_KEIN_NEUSTART=1 swift run store-pruefung
 ```
 
@@ -87,6 +88,7 @@ Ein Mac-Editor für deine espanso-Bausteine: Ordner wie bei Typinator, eine durc
 Rechtschreibprüfung und eine Prüfung auf Kürzel, die mitten in echten Wörtern auslösen. *Inoffiziell, nicht vom
 espanso-Projekt.*
 
+- **Suche** über alle Ordner: Kürzel und Text, nur Kürzel oder nur Text, auf Wunsch als ganzes Wort.
 - **Ordner = Datei** in `match/`; ausschalten = `_` vor dem Dateinamen. Bausteine per Ziehen verschieben.
 - **Speichert beim Tippen**, nach etwa 1 s in espanso aktiv; liegt der Ordner in einem git-Repo, wird nach 30 s Ruhe
   committet und gepusht.
