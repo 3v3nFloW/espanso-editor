@@ -3,7 +3,8 @@ import AppKit
 import BausteineKern
 
 struct Einstellungen: View {
-    static let ltDienst = "Espanso Editor LanguageTool"
+    // interner Name aus der Zeit als „Bausteine“ (07.10.26) — so bleibt der dort eingetragene Schlüssel gültig
+    static let ltDienst = "Bausteine-Editor LanguageTool"
 
     var body: some View {
         TabView {

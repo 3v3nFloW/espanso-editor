@@ -8,6 +8,17 @@ struct BausteineApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var delegate
     @State private var store = Store()
 
+    init() {
+        // Einstellungen der App aus der Zeit als „Bausteine“ (vet.kappa1.bausteine-editor) einmalig übernehmen
+        let d = UserDefaults.standard
+        if d.object(forKey: "einstellungenUebernommen") == nil, let alt = UserDefaults(suiteName: "vet.kappa1.bausteine-editor") {
+            for k in ["ltAktiv", "ltBenutzer", "ltSprache", "schriftgroesse"] where d.object(forKey: k) == nil {
+                if let v = alt.object(forKey: k) { d.set(v, forKey: k) }
+            }
+            d.set(true, forKey: "einstellungenUebernommen")
+        }
+    }
+
     var body: some Scene {
         Window("Espanso Editor", id: "haupt") {
             HauptFenster()
