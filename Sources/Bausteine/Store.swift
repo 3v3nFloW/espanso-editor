@@ -78,7 +78,7 @@ final class Store {
             self.repo = repo
             self.wortschatz = wortschatz
             await laden(espansoAnzahl: anzahl, verteilstatus: repo == nil ? .ohneGit : .gesichert)
-            if let fehler { meldung = "Abgleich beim Start: \(fehler)" }
+            if let fehler { meldung = L("Abgleich beim Start: {0}", fehler) }
         }
         waechter = Timer.scheduledTimer(withTimeInterval: 3, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.aufFremdeAenderungenPruefen() }
@@ -208,7 +208,7 @@ final class Store {
         b.quelle = nil
         b.geaendert = Date()
         dateien[di].bausteine[bi] = b
-        protokoll("geändert: \(b.hauptkuerzel)")
+        protokoll(L("geändert: {0}", b.hauptkuerzel))
         planeSchreiben([dateien[di].id])
     }
 
@@ -241,7 +241,7 @@ final class Store {
             var b = dateien[di].bausteine[bi].kopie()
             if !b.komplex { b.kuerzel = b.kuerzel.map { $0 + "2" } }
             dateien[di].bausteine.insert(b, at: bi + 1)
-            protokoll("dupliziert: \(b.hauptkuerzel)")
+            protokoll(L("dupliziert: {0}", b.hauptkuerzel))
             neue.insert(b.id)
             planeSchreiben([dateien[di].id])
         }
@@ -253,7 +253,7 @@ final class Store {
         for (di, d) in dateien.enumerated() where !d.nurLesen {
             guard d.bausteine.contains(where: { ids.contains($0.id) }) else { continue }
             let weg = dateien[di].entfernen(ids)   // Kommentare darüber bleiben in der Datei
-            weg.forEach { protokoll("gelöscht: \($0.hauptkuerzel)") }
+            weg.forEach { protokoll(L("gelöscht: {0}", $0.hauptkuerzel)) }
             betroffen.insert(d.id)
         }
         auswahl.subtract(ids)
@@ -270,7 +270,7 @@ final class Store {
             for var b in weg {
                 b.ordnerID = ziel; b.quelle = nil
                 dateien[zi].bausteine.append(b)
-                protokoll("verschoben: \(b.hauptkuerzel) → \(dateien[zi].name)")
+                protokoll(L("verschoben: {0} → {1}", b.hauptkuerzel, dateien[zi].name))
             }
             betroffen.insert(dateien[di].id)
         }
@@ -291,7 +291,7 @@ final class Store {
         while dateien.contains(where: { $0.id == id }) || id == "base.yml" { id = "\(slug)-\(i).yml"; i += 1 }
         let d = MatchDatei.lesen(text: "# Ordner: \(n)\nmatches:\n", dateiname: id)
         dateien.append(d)
-        protokoll("neuer Ordner: \(n)")
+        protokoll(L("neuer Ordner: {0}", n))
         planeSchreiben([id])
         return id
     }
@@ -303,7 +303,7 @@ final class Store {
         else { kopf.insert("# Ordner: \(name)\n", at: 0) }
         dateien[di].kopf = kopf
         dateien[di].name = name
-        protokoll("Ordner umbenannt: \(name)")
+        protokoll(L("Ordner umbenannt: {0}", name))
         planeSchreiben([id])
     }
 
@@ -313,7 +313,7 @@ final class Store {
         dateien[di].aktiv = an
         let neu = matchOrdner.appendingPathComponent(dateien[di].dateiname)
         do { try FileManager.default.moveItem(at: alt, to: neu) } catch { dateien[di].aktiv = !an; meldung = error.localizedDescription; return }
-        protokoll("Ordner \(an ? "eingeschaltet" : "ausgeschaltet"): \(dateien[di].name)")
+        protokoll(an ? L("Ordner eingeschaltet: {0}", dateien[di].name) : L("Ordner ausgeschaltet: {0}", dateien[di].name))
         bekannteStaende = staende()
         nachDemSchreiben()
     }
@@ -321,7 +321,7 @@ final class Store {
     func ordnerLoeschen(_ id: String) {
         guard let di = dateien.firstIndex(where: { $0.id == id }), dateien[di].bausteine.isEmpty, dateien[di].ausschaltbar else { return }
         try? FileManager.default.removeItem(at: matchOrdner.appendingPathComponent(dateien[di].dateiname))
-        protokoll("Ordner gelöscht: \(dateien[di].name)")
+        protokoll(L("Ordner gelöscht: {0}", dateien[di].name))
         dateien.remove(at: di)
         if seite == .ordner(id) { seite = .alle }
         bekannteStaende = staende()
@@ -334,7 +334,7 @@ final class Store {
         try? FileManager.default.createDirectory(at: editorOrdner, withIntermediateDirectories: true)
         try? text.write(to: schutzlisteURL, atomically: true, encoding: .utf8)
         schutzwoerter = Kollisionspruefung.liste(text)
-        protokoll("Schutzliste")
+        protokoll(L("Schutzliste"))
         kollisionenBerechnen()
         gitPlanen()
     }
@@ -344,7 +344,7 @@ final class Store {
         try? FileManager.default.createDirectory(at: editorOrdner, withIntermediateDirectories: true)
         let t = "# Kürzel ohne Wortgrenze, die bewusst so bleiben (Espanso Editor)\n" + akzeptiert.sorted().joined(separator: "\n") + "\n"
         try? t.write(to: akzeptiertURL, atomically: true, encoding: .utf8)
-        protokoll("Kollision akzeptiert: \(kuerzel)")
+        protokoll(L("Kollision akzeptiert: {0}", kuerzel))
         kollisionenBerechnen()
         gitPlanen()
     }
@@ -422,7 +422,7 @@ final class Store {
                 for (url, alt) in zurueck {
                     if let alt { try? alt.write(to: url, atomically: true, encoding: .utf8) } else { try? FileManager.default.removeItem(at: url) }
                 }
-                meldung = "espanso lädt nach dem Speichern \(n) statt \(erwartet) Bausteine — Änderung zurückgenommen. Bitte den letzten Eintrag prüfen."
+                meldung = L("espanso lädt nach dem Speichern {0} statt {1} Bausteine — Änderung zurückgenommen. Bitte den letzten Eintrag prüfen.", n, erwartet)
                 laden()
                 return
             }
@@ -488,7 +488,7 @@ final class Store {
         aenderungsprotokoll = []
         var titel = eintraege.prefix(3).joined(separator: ", ")
         if eintraege.count > 3 { titel += " (+\(eintraege.count - 3))" }
-        let nachricht = "Espanso Editor: " + (titel.isEmpty ? "Änderungen" : titel)
+        let nachricht = "Espanso Editor: " + (titel.isEmpty ? L("Änderungen") : titel)
             + (eintraege.count > 3 ? "\n\n" + eintraege.map { "- " + $0 }.joined(separator: "\n") : "")
         let r = await Task.detached { repo.sichern(nachricht: nachricht) }.value
         verteilstatus = r.ok ? .gesichert : .fehler(r.meldung)
@@ -520,7 +520,7 @@ final class Store {
         var betroffen: Set<String> = []
         for e in eintraege {
             guard !vorhanden.contains(e.kuerzel) else { doppelt += 1; continue }
-            let ordnerName = zielordner == nil ? (e.ordner ?? "Importiert") : nil
+            let ordnerName = zielordner == nil ? (e.ordner ?? L("Importiert")) : nil
             var ziel = zielordner ?? ""
             if let ordnerName {
                 ziel = dateien.first { $0.name.caseInsensitiveCompare(ordnerName) == .orderedSame }?.id ?? ordnerNeu(ordnerName) ?? ""
@@ -533,7 +533,7 @@ final class Store {
             betroffen.insert(ziel)
             neu += 1
         }
-        if neu > 0 { protokoll("importiert: \(neu) Bausteine") }
+        if neu > 0 { protokoll(L("importiert: {0} Bausteine", neu)) }
         planeSchreiben(betroffen)
         return (neu, doppelt)
     }
@@ -541,7 +541,7 @@ final class Store {
     func yamlImportieren(_ url: URL, zielordner: String?) throws -> (neu: Int, doppelt: Int) {
         let t = try String(contentsOf: url, encoding: .utf8)
         let d = MatchDatei.lesen(text: t, dateiname: url.lastPathComponent)
-        guard !d.nurLesen else { throw KernFehler.nichtLesbar(url.lastPathComponent, "Aufbau nicht erkannt") }
+        guard !d.nurLesen else { throw KernFehler.nichtLesbar(url.lastPathComponent, L("Aufbau nicht erkannt")) }
         let ziel = zielordner ?? ordnerNeu(d.name) ?? ""
         guard let di = dateien.firstIndex(where: { $0.id == ziel }) else { return (0, 0) }
         var vorhanden = Set(alleBausteine.flatMap(\.kuerzel))
@@ -553,7 +553,7 @@ final class Store {
             b.kuerzel.forEach { vorhanden.insert($0) }
             neu += 1
         }
-        if neu > 0 { protokoll("importiert: \(neu) aus \(url.lastPathComponent)") }
+        if neu > 0 { protokoll(L("importiert: {0} aus {1}", neu, url.lastPathComponent)) }
         planeSchreiben([ziel])
         return (neu, doppelt)
     }

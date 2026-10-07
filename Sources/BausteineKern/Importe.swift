@@ -14,7 +14,7 @@ public enum ImportFehler: LocalizedError {
     case typinatorNichtErreichbar(String)
     public var errorDescription: String? {
         switch self {
-        case .typinatorNichtErreichbar(let m): return "Typinator liess sich nicht auslesen: \(m)"
+        case .typinatorNichtErreichbar(let m): return L("Typinator liess sich nicht auslesen: {0}", m)
         }
     }
 }
@@ -34,7 +34,7 @@ public enum Importe {
         let kKuerzel: Set = ["kürzel", "kuerzel", "trigger", "abbreviation", "abkürzung"]
         let kText: Set = ["text", "replace", "expansion", "ersetzung"]
         let kOrdner: Set = ["ordner", "folder", "set", "gruppe"]
-        let kWort: Set = ["wortgrenze", "word", "whole word"]
+        let kWort: Set = ["wortgrenze", "word", "whole word", "word boundary"]
         let kopf = erste.map { $0.trimmingCharacters(in: .whitespaces).lowercased() }
         let hatKopf = kopf.first.map(kKuerzel.contains) ?? false
         var spalte = (k: 0, t: 1, o: Optional(2), w: Optional(3))
@@ -61,9 +61,9 @@ public enum Importe {
             s.contains(where: { $0 == ";" || $0 == "\"" || $0 == "\n" || $0 == "\r" || $0 == "\r\n" })
                 ? "\"" + s.replacingOccurrences(of: "\"", with: "\"\"") + "\"" : s
         }
-        var r = "\u{FEFF}Kürzel;Text;Ordner;Wortgrenze\r\n"
+        var r = "\u{FEFF}" + L("Kürzel;Text;Ordner;Wortgrenze") + "\r\n"
         for e in eintraege {
-            r += [feld(e.kuerzel), feld(e.text), feld(e.ordner ?? ""), e.wortgrenze ? "ja" : "nein"].joined(separator: ";") + "\r\n"
+            r += [feld(e.kuerzel), feld(e.text), feld(e.ordner ?? ""), e.wortgrenze ? L("ja") : L("nein")].joined(separator: ";") + "\r\n"
         }
         return r
     }

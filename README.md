@@ -7,7 +7,7 @@ spell checking, and a check for abbreviations that fire in the middle of real wo
 
 [Deutsch weiter unten](#deutsch)
 
-![Overview](docs/uebersicht.png)
+![Overview](docs/uebersicht-en.png)
 
 ## Features
 
@@ -26,8 +26,9 @@ spell checking, and a check for abbreviations that fire in the middle of real wo
   vocabulary built from your own texts. One click: set word boundary, rename, or keep.
 - Duplicate abbreviations, entries with variables/forms editable as raw YAML, import (CSV, espanso YAML, running
   Typinator), export (ZIP in espanso format, CSV), font size slider (⌘+ / ⌘− / ⌘0).
+- **English and German** user interface, following the macOS language.
 
-![Collisions](docs/kollisionen.png)
+![Collisions](docs/kollisionen-en.png)
 
 ## Install
 
@@ -66,6 +67,11 @@ git clone --bare <repo> /tmp/t/remote.git && git clone /tmp/t/remote.git /tmp/t/
 ESPANSO_CONFIG_DIR=/tmp/t/espanso BAUSTEINE_KEIN_NEUSTART=1 swift run store-pruefung
 ```
 
+## Contributing
+
+The code (identifiers and comments) is written in German, the user interface is English and German
+(`Sources/BausteineKern/Sprache.swift`). Issues and pull requests in English are welcome.
+
 ## License
 
 GPL-3.0-or-later — see [LICENSE](LICENSE).
@@ -73,6 +79,8 @@ GPL-3.0-or-later — see [LICENSE](LICENSE).
 ---
 
 ## Deutsch
+
+![Übersicht](docs/uebersicht-de.png)
 
 Ein Mac-Editor für deine espanso-Bausteine: Ordner wie bei Typinator, eine durchsuchbare Tabelle,
 Rechtschreibprüfung und eine Prüfung auf Kürzel, die mitten in echten Wörtern auslösen. *Inoffiziell, nicht vom
@@ -85,6 +93,7 @@ espanso-Projekt.*
   Bausteine laden, sonst wird zurückgenommen.
 - **Rechtschreibung:** macOS (Tippfehler) immer, LanguageTool (Kommas, Grammatik) auf Wunsch.
 - **Kollisionen:** Schutzliste (`match/_bausteine/schutzwoerter.txt`) und eigener Wortschatz aus alten Texten.
+- **Oberfläche** Deutsch oder Englisch, je nach Systemsprache.
 - **Installation:** ZIP aus den Releases, App nach *Programme*; beim ersten Start unter *Systemeinstellungen ›
   Datenschutz & Sicherheit* auf **Trotzdem öffnen** klicken (die App ist nicht notarisiert).
 

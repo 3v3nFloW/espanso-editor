@@ -104,14 +104,14 @@ public struct GitRepo: Sendable {
             let c = g(["commit", "-q", "-m", nachricht])
             if !c.ok && !c.aus.contains("nothing to commit") { return (false, "commit: " + c.fehler + c.aus) }
         }
-        guard hatGegenstelle else { return (true, "gesichert (ohne Gegenstelle)") }
+        guard hatGegenstelle else { return (true, L("gesichert (ohne Gegenstelle)")) }
         var p = g(["push", "-q"], timeout: 45)
         if !p.ok {
             let r = g(["pull", "-q", "--rebase", "--autostash"], timeout: 45)
-            if !r.ok { g(["rebase", "--abort"]); return (false, "Abgleich: " + r.fehler) }
+            if !r.ok { g(["rebase", "--abort"]); return (false, L("Abgleich: ") + r.fehler) }
             p = g(["push", "-q"], timeout: 45)
         }
-        return p.ok ? (true, "gesichert und verteilt") : (false, "push: " + p.fehler)
+        return p.ok ? (true, L("gesichert und verteilt")) : (false, "push: " + p.fehler)
     }
 
     /// Letzte Änderung je Zeile (0-basiert) aus git blame; nicht committete Zeilen = jetzt.

@@ -33,31 +33,31 @@ struct BausteineApp: App {
         .defaultSize(width: 1400, height: 860)
         .commands {
             CommandGroup(replacing: .newItem) {
-                Button("Neuer Baustein") { _ = store.neu() }.keyboardShortcut("n")
-                Button("Neuer Ordner …") { NotificationCenter.default.post(name: .neuerOrdner, object: nil) }
+                Button(L("Neuer Baustein")) { _ = store.neu() }.keyboardShortcut("n")
+                Button(L("Neuer Ordner …")) { NotificationCenter.default.post(name: .neuerOrdner, object: nil) }
                     .keyboardShortcut("n", modifiers: [.command, .shift])
             }
             CommandGroup(after: .importExport) {
-                Menu("Importieren") {
-                    Button("CSV …") { ImportExport.csvImport(store) }
-                    Button("espanso-YAML …") { ImportExport.yamlImport(store) }
-                    Button("Aus Typinator (laufende App)") { ImportExport.typinatorImport(store) }
+                Menu(L("Importieren")) {
+                    Button(L("CSV …")) { ImportExport.csvImport(store) }
+                    Button(L("espanso-YAML …")) { ImportExport.yamlImport(store) }
+                    Button(L("Aus Typinator (laufende App)")) { ImportExport.typinatorImport(store) }
                 }
-                Menu("Exportieren") {
-                    Button("Sicherung als ZIP (espanso-Format) …") { ImportExport.zipExport(store) }
-                    Button("Tabelle als CSV …") { ImportExport.csvExport(store) }
+                Menu(L("Exportieren")) {
+                    Button(L("Sicherung als ZIP (espanso-Format) …")) { ImportExport.zipExport(store) }
+                    Button(L("Tabelle als CSV …")) { ImportExport.csvExport(store) }
                 }
             }
-            CommandMenu("Bausteine") {
-                Button("Jetzt verteilen") { store.jetztVerteilen() }.keyboardShortcut("s")
-                Button("espanso neu starten") { Task.detached { Espanso.neustarten() } }
+            CommandMenu(L("Bausteine")) {
+                Button(L("Jetzt verteilen")) { store.jetztVerteilen() }.keyboardShortcut("s")
+                Button(L("espanso neu starten")) { Task.detached { Espanso.neustarten() } }
                 Divider()
-                Button("Suchen") { NotificationCenter.default.post(name: .sucheFokus, object: nil) }.keyboardShortcut("f")
+                Button(L("Suchen")) { NotificationCenter.default.post(name: .sucheFokus, object: nil) }.keyboardShortcut("f")
             }
             CommandGroup(after: .toolbar) {
-                Button("Schrift grösser") { store.schriftAendern(+1) }.keyboardShortcut("+")
-                Button("Schrift kleiner") { store.schriftAendern(-1) }.keyboardShortcut("-")
-                Button("Normale Schriftgrösse") { store.schrift = Schrift.standard }.keyboardShortcut("0")
+                Button(L("Schrift grösser")) { store.schriftAendern(+1) }.keyboardShortcut("+")
+                Button(L("Schrift kleiner")) { store.schriftAendern(-1) }.keyboardShortcut("-")
+                Button(L("Normale Schriftgrösse")) { store.schrift = Schrift.standard }.keyboardShortcut("0")
             }
         }
 
@@ -123,14 +123,14 @@ enum ImportExport {
     /// Zielordner: aus der Datei (Ordner-Spalte / Set-Name) oder der gewählte Ordner.
     static func zielFragen(_ store: Store, _ anzahl: Int, mitDateiordnern: Bool) -> String?? {
         let a = NSAlert()
-        a.messageText = "\(anzahl) Bausteine importieren"
-        a.informativeText = "Bereits vorhandene Kürzel werden übersprungen."
+        a.messageText = L("{0} Bausteine importieren", anzahl)
+        a.informativeText = L("Bereits vorhandene Kürzel werden übersprungen.")
         let pop = NSPopUpButton(frame: NSRect(x: 0, y: 0, width: 280, height: 26))
-        if mitDateiordnern { pop.addItem(withTitle: "Ordner aus der Datei übernehmen") }
+        if mitDateiordnern { pop.addItem(withTitle: L("Ordner aus der Datei übernehmen")) }
         for d in store.dateien where !d.nurLesen { pop.addItem(withTitle: "In „\(d.name)“"); pop.lastItem?.representedObject = d.id }
         if case .ordner(let o) = store.seite, let i = pop.itemArray.firstIndex(where: { $0.representedObject as? String == o }), !mitDateiordnern { pop.selectItem(at: i) }
         a.accessoryView = pop
-        a.addButton(withTitle: "Importieren"); a.addButton(withTitle: "Abbrechen")
+        a.addButton(withTitle: L("Importieren")); a.addButton(withTitle: L("Abbrechen"))
         guard a.runModal() == .alertFirstButtonReturn else { return .none }
         return .some(pop.selectedItem?.representedObject as? String)
     }
@@ -139,10 +139,10 @@ enum ImportExport {
         guard let url = oeffnen([.commaSeparatedText, .tabSeparatedText, .plainText]),
               let t = (try? String(contentsOf: url, encoding: .utf8)) ?? (try? String(contentsOf: url, encoding: .isoLatin1)) else { return }
         let e = Importe.csvLesen(t)
-        guard !e.isEmpty else { return melden("Nichts gefunden", "Die Datei enthält keine Zeilen mit Kürzel und Text.") }
+        guard !e.isEmpty else { return melden(L("Nichts gefunden"), L("Die Datei enthält keine Zeilen mit Kürzel und Text.")) }
         guard let ziel = zielFragen(store, e.count, mitDateiordnern: e.contains { $0.ordner != nil }) else { return }
         let r = store.importieren(e, zielordner: ziel)
-        melden("Import abgeschlossen", "\(r.neu) neu, \(r.doppelt) übersprungen (Kürzel gab es schon).")
+        melden(L("Import abgeschlossen"), L("{0} neu, {1} übersprungen (Kürzel gab es schon).", r.neu, r.doppelt))
     }
 
     static func yamlImport(_ store: Store) {
@@ -150,8 +150,8 @@ enum ImportExport {
         guard let ziel = zielFragen(store, 0, mitDateiordnern: true) else { return }
         do {
             let r = try store.yamlImportieren(url, zielordner: ziel)
-            melden("Import abgeschlossen", "\(r.neu) neu, \(r.doppelt) übersprungen (Kürzel gab es schon).")
-        } catch { melden("Import fehlgeschlagen", error.localizedDescription) }
+            melden(L("Import abgeschlossen"), L("{0} neu, {1} übersprungen (Kürzel gab es schon).", r.neu, r.doppelt))
+        } catch { melden(L("Import fehlgeschlagen"), error.localizedDescription) }
     }
 
     static func typinatorImport(_ store: Store) {
@@ -160,7 +160,7 @@ enum ImportExport {
                 let r = try await Task.detached { try Importe.typinatorLesen() }.value
                 guard let ziel = zielFragen(store, r.eintraege.count, mitDateiordnern: true) else { return }
                 let i = store.importieren(r.eintraege, zielordner: ziel)
-                melden("Import abgeschlossen", "\(i.neu) neu, \(i.doppelt) übersprungen (Kürzel gab es schon), \(r.uebersprungen) mit Typinator-Funktionen, die espanso nicht kennt.")
+                melden(L("Import abgeschlossen"), L("{0} neu, {1} übersprungen (Kürzel gab es schon), {2} mit Typinator-Funktionen, die espanso nicht kennt.", i.neu, i.doppelt, r.uebersprungen))
             } catch { melden("Typinator", error.localizedDescription) }
         }
     }
@@ -173,21 +173,21 @@ enum ImportExport {
     static var datum: String { let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f.string(from: Date()) }
 
     static func zipExport(_ store: Store) {
-        guard let url = speichern("Bausteine-\(datum).zip", .zip) else { return }
+        guard let url = speichern(L("Bausteine-{0}.zip", datum), .zip) else { return }
         try? FileManager.default.removeItem(at: url)
         let quelle = store.matchOrdner.resolvingSymlinksInPath()
         let r = Shell.run("/usr/bin/ditto", ["-c", "-k", "--keepParent", quelle.path, url.path])
-        if !r.ok { melden("Export fehlgeschlagen", r.fehler) }
+        if !r.ok { melden(L("Export fehlgeschlagen"), r.fehler) }
     }
 
     static func csvExport(_ store: Store) {
-        guard let url = speichern("Bausteine-\(datum).csv", .commaSeparatedText) else { return }
+        guard let url = speichern(L("Bausteine-{0}.csv", datum), .commaSeparatedText) else { return }
         let e = store.alleBausteine.map {
             ImportEintrag(kuerzel: $0.kuerzel.joined(separator: ", "), text: $0.komplex ? $0.roh : $0.text, wortgrenze: $0.wortgrenze,
-                          ordner: store.ordnername($0.ordnerID) + (store.datei($0.ordnerID)?.aktiv == false ? " (aus)" : ""))
+                          ordner: store.ordnername($0.ordnerID) + (store.datei($0.ordnerID)?.aktiv == false ? L(" (aus)") : ""))
         }
         do { try Importe.csvSchreiben(e).write(to: url, atomically: true, encoding: .utf8) }
-        catch { melden("Export fehlgeschlagen", error.localizedDescription) }
+        catch { melden(L("Export fehlgeschlagen"), error.localizedDescription) }
     }
 }
 

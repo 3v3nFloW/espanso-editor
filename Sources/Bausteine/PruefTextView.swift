@@ -121,16 +121,16 @@ final class LTTextView: NSTextView {
         kopf.isEnabled = false
         menu.insertItem(kopf, at: pos); pos += 1
         for v in t.vorschlaege {
-            let m = NSMenuItem(title: v.isEmpty ? "(entfernen)" : v, action: #selector(vorschlag(_:)), keyEquivalent: "")
+            let m = NSMenuItem(title: v.isEmpty ? L("(entfernen)") : v, action: #selector(vorschlag(_:)), keyEquivalent: "")
             m.target = self; m.representedObject = [t.id.uuidString, v]
             menu.insertItem(m, at: pos); pos += 1
         }
         if t.art == .rechtschreibung {
-            let w = NSMenuItem(title: "Ins Wörterbuch aufnehmen", action: #selector(woerterbuch(_:)), keyEquivalent: "")
+            let w = NSMenuItem(title: L("Ins Wörterbuch aufnehmen"), action: #selector(woerterbuch(_:)), keyEquivalent: "")
             w.target = self; w.representedObject = (string as NSString).substring(with: t.bereich)
             menu.insertItem(w, at: pos); pos += 1
         }
-        let ig = NSMenuItem(title: "Ignorieren", action: #selector(ignorieren(_:)), keyEquivalent: "")
+        let ig = NSMenuItem(title: L("Ignorieren"), action: #selector(ignorieren(_:)), keyEquivalent: "")
         ig.target = self; ig.representedObject = t.id.uuidString
         menu.insertItem(ig, at: pos); pos += 1
         menu.insertItem(.separator(), at: pos)

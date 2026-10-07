@@ -9,10 +9,10 @@ struct EditorBereich: View {
         if store.auswahl.count == 1, let id = store.auswahl.first, store.baustein(id) != nil {
             BausteinEditor(id: id).id(id)
         } else {
-            ContentUnavailableView(store.auswahl.isEmpty ? "Kein Baustein ausgewählt" : "\(store.auswahl.count) Bausteine ausgewählt",
+            ContentUnavailableView(store.auswahl.isEmpty ? L("Kein Baustein ausgewählt") : L("{0} Bausteine ausgewählt", store.auswahl.count),
                                    systemImage: "text.cursor",
-                                   description: Text(store.auswahl.isEmpty ? "In der Tabelle wählen oder mit ⌘N neu anlegen."
-                                                     : "Mit der Maus auf einen Ordner ziehen oder per Rechtsklick verschieben."))
+                                   description: Text(store.auswahl.isEmpty ? L("In der Tabelle wählen oder mit ⌘N neu anlegen.")
+                                                     : L("Mit der Maus auf einen Ordner ziehen oder per Rechtsklick verschieben.")))
         }
     }
 }
@@ -39,7 +39,7 @@ struct BausteinEditor: View {
                 kopfzeile(b)
                 hinweise(b)
                 if b.komplex {
-                    Text("Eintrag mit Variablen/Formular — als YAML bearbeiten (beginnt mit „- trigger:“).").font(.caption).foregroundStyle(.secondary)
+                    Text(L("Eintrag mit Variablen/Formular — als YAML bearbeiten (beginnt mit „- trigger:“).")).font(.caption).foregroundStyle(.secondary)
                     PruefTextView(text: Binding(get: { b.roh }, set: { neu in store.aendern(id) { $0.roh = neu; $0.kuerzel = Self.kuerzelAusRoh(neu) ?? $0.kuerzel } }),
                                   pruefen: false, monospace: true, schriftgroesse: schrift)
                         .border(Color(nsColor: .separatorColor))
@@ -65,7 +65,7 @@ struct BausteinEditor: View {
     @ViewBuilder
     func kopfzeile(_ b: Baustein) -> some View {
         HStack(spacing: 12) {
-            TextField("Kürzel", text: $kuerzelText)
+            TextField(L("Kürzel"), text: $kuerzelText)
                 .font(.system(size: schrift + 1, design: .monospaced))
                 .controlSize(.large)
                 .textFieldStyle(.roundedBorder)
@@ -76,21 +76,21 @@ struct BausteinEditor: View {
                     let k = neu.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
                     store.aendern(id) { $0.kuerzel = k.isEmpty ? [""] : k }
                 }
-                .help("Mehrere Kürzel mit Komma trennen")
-            Picker("Ordner", selection: Binding(get: { b.ordnerID }, set: { store.verschieben([id], nach: $0) })) {
-                ForEach(store.dateien.filter { !$0.nurLesen }) { d in Text(d.name + (d.aktiv ? "" : " (aus)")).tag(d.id) }
+                .help(L("Mehrere Kürzel mit Komma trennen"))
+            Picker(L("Ordner"), selection: Binding(get: { b.ordnerID }, set: { store.verschieben([id], nach: $0) })) {
+                ForEach(store.dateien.filter { !$0.nurLesen }) { d in Text(d.name + (d.aktiv ? "" : L(" (aus)"))).tag(d.id) }
             }
             .frame(maxWidth: 240)
             if !b.komplex {
-                Toggle("Wortgrenze", isOn: Binding(get: { b.wortgrenze }, set: { w in store.aendern(id) { $0.wortgrenze = w } }))
-                    .help("An: löst nur als ganzes Wort aus (z. B. „dt“ nicht in „Stadtpark“)")
+                Toggle(L("Wortgrenze"), isOn: Binding(get: { b.wortgrenze }, set: { w in store.aendern(id) { $0.wortgrenze = w } }))
+                    .help(L("An: löst nur als ganzes Wort aus (z. B. „dt“ nicht in „Stadtpark“)"))
             }
             Spacer()
             Menu {
-                if !b.komplex { Button("Als YAML bearbeiten (Variablen, Formulare …)") { store.alsRohtext(id) } }
-                Button("Duplizieren") { store.duplizieren([id]) }
+                if !b.komplex { Button(L("Als YAML bearbeiten (Variablen, Formulare …)")) { store.alsRohtext(id) } }
+                Button(L("Duplizieren")) { store.duplizieren([id]) }
                 Divider()
-                Button("Löschen", role: .destructive) { store.loeschen([id]) }
+                Button(L("Löschen"), role: .destructive) { store.loeschen([id]) }
             } label: { Image(systemName: "ellipsis.circle") }
             .menuStyle(.borderlessButton).frame(width: 30)
         }
@@ -102,22 +102,22 @@ struct BausteinEditor: View {
         let doppelt = andere.filter { store.datei($0.1)?.aktiv == true }.map { ($0.0, store.ordnername($0.1)) }
         let ruhend = andere.filter { store.datei($0.1)?.aktiv != true }.map { ($0.0, store.ordnername($0.1)) }
         if store.entwuerfe.contains(id) {
-            Label("Neu — wird gespeichert, sobald Kürzel und Text ausgefüllt sind.", systemImage: "square.and.pencil").font(.callout).foregroundStyle(.secondary)
+            Label(L("Neu — wird gespeichert, sobald Kürzel und Text ausgefüllt sind."), systemImage: "square.and.pencil").font(.callout).foregroundStyle(.secondary)
         }
         if let (k, o) = doppelt.first {
-            Label("„\(k)“ gibt es auch in „\(o)“\(doppelt.count > 1 ? " (+\(doppelt.count - 1))" : "") — espanso nimmt dann einen davon.", systemImage: "square.on.square")
+            Label(doppelt.count > 1 ? L("„{0}“ gibt es auch in „{1}“ (+{2}) — espanso nimmt dann einen davon.", k, o, doppelt.count - 1) : L("„{0}“ gibt es auch in „{1}“ — espanso nimmt dann einen davon.", k, o), systemImage: "square.on.square")
                 .font(.callout).foregroundStyle(.orange)
         }
         if doppelt.isEmpty, let (k, o) = ruhend.first {
-            Label("„\(k)“ steht auch im ausgeschalteten Ordner „\(o)“ — stört erst, wenn er eingeschaltet wird.", systemImage: "square.on.square")
+            Label(L("„{0}“ steht auch im ausgeschalteten Ordner „{1}“ — stört erst, wenn er eingeschaltet wird.", k, o), systemImage: "square.on.square")
                 .font(.callout).foregroundStyle(.secondary)
         }
         if let k = store.kollision(fuer: id) {
             HStack {
-                Label("Löst mitten in Wörtern aus: " + (k.ausSchutzliste + k.woerter).prefix(4).joined(separator: ", "), systemImage: "exclamationmark.triangle")
+                Label(L("Löst mitten in Wörtern aus: {0}", (k.ausSchutzliste + k.woerter).prefix(4).joined(separator: ", ")), systemImage: "exclamationmark.triangle")
                     .font(.callout).foregroundStyle(.orange)
-                Button("Wortgrenze setzen") { store.aendern(id) { $0.wortgrenze = true } }.controlSize(.small)
-                Button("So lassen") { store.akzeptieren(k.kuerzel) }.controlSize(.small)
+                Button(L("Wortgrenze setzen")) { store.aendern(id) { $0.wortgrenze = true } }.controlSize(.small)
+                Button(L("So lassen")) { store.akzeptieren(k.kuerzel) }.controlSize(.small)
             }
         }
     }
@@ -133,16 +133,16 @@ struct BausteinEditor: View {
                 if let ltFehler {
                     Label(ltFehler, systemImage: "wifi.exclamationmark").foregroundStyle(.secondary).lineLimit(1)
                 } else if sichtbar.isEmpty && !ltLaeuft {
-                    Label("LanguageTool: keine Fehler", systemImage: "checkmark.seal").foregroundStyle(.secondary)
+                    Label(L("LanguageTool: keine Fehler"), systemImage: "checkmark.seal").foregroundStyle(.secondary)
                 } else {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 6) {
                             ForEach(sichtbar) { t in
                                 Menu {
                                     Text(t.meldung)
-                                    ForEach(t.vorschlaege, id: \.self) { v in Button(v.isEmpty ? "(entfernen)" : v) { anwenden(t, v) } }
-                                    if t.art == .rechtschreibung { Button("Ins Wörterbuch") { woerterbuch(wort(t)) } }
-                                    Button("Ignorieren") { ignoriert.insert(schluessel(t)) }
+                                    ForEach(t.vorschlaege, id: \.self) { v in Button(v.isEmpty ? L("(entfernen)") : v) { anwenden(t, v) } }
+                                    if t.art == .rechtschreibung { Button(L("Ins Wörterbuch")) { woerterbuch(wort(t)) } }
+                                    Button(L("Ignorieren")) { ignoriert.insert(schluessel(t)) }
                                 } label: {
                                     Text(wort(t) + (t.vorschlaege.first.map { " → " + $0 } ?? ""))
                                 }
@@ -157,7 +157,7 @@ struct BausteinEditor: View {
             .font(.callout)
             .frame(height: 22)
         } else {
-            Text("Rechtschreibung: macOS (Tippfehler). Kommas und Grammatik prüft LanguageTool — in den Einstellungen einschalten.")
+            Text(L("Rechtschreibung: macOS (Tippfehler). Kommas und Grammatik prüft LanguageTool — in den Einstellungen einschalten."))
                 .font(.caption).foregroundStyle(.tertiary)
         }
     }
@@ -202,7 +202,7 @@ struct BausteinEditor: View {
         } catch is CancellationError {
         } catch {
             if (error as? URLError)?.code == .cancelled { return }
-            ltFehler = "LanguageTool nicht erreichbar — nur macOS-Prüfung"
+            ltFehler = L("LanguageTool nicht erreichbar — nur macOS-Prüfung")
         }
     }
 

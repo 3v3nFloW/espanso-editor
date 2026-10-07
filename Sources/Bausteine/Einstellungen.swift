@@ -8,9 +8,9 @@ struct Einstellungen: View {
 
     var body: some View {
         TabView {
-            Allgemein().tabItem { Label("Allgemein", systemImage: "gearshape") }
-            Rechtschreibung().tabItem { Label("Rechtschreibung", systemImage: "textformat.abc") }
-            KollisionenEinstellungen().tabItem { Label("Kollisionen", systemImage: "exclamationmark.triangle") }
+            Allgemein().tabItem { Label(L("Allgemein"), systemImage: "gearshape") }
+            Rechtschreibung().tabItem { Label(L("Rechtschreibung"), systemImage: "textformat.abc") }
+            KollisionenEinstellungen().tabItem { Label(L("Kollisionen"), systemImage: "exclamationmark.triangle") }
         }
         .frame(width: 560, height: 420)
     }
@@ -20,11 +20,11 @@ private struct Allgemein: View {
     @Environment(Store.self) private var store
     var body: some View {
         Form {
-            LabeledContent("espanso-Ordner") { Text(store.konfigOrdner.path).textSelection(.enabled) }
-            LabeledContent("Bausteine liegen in") { Text(store.matchOrdner.resolvingSymlinksInPath().path).textSelection(.enabled) }
-            LabeledContent("espanso-Programm") { Text(Espanso.programm ?? "nicht gefunden").textSelection(.enabled) }
-            LabeledContent("git") { Text(store.repo.map { "\($0.wurzel.path) — Änderungen werden nach 30 s Ruhe committet und gepusht" } ?? "kein git-Repo — Änderungen werden nur gespeichert") }
-            Text("Jede Änderung ist nach ca. 1 s in espanso aktiv. Ausgeschaltete Ordner sind Dateien mit „_“ vorne — espanso lädt sie nicht.")
+            LabeledContent(L("espanso-Ordner")) { Text(store.konfigOrdner.path).textSelection(.enabled) }
+            LabeledContent(L("Bausteine liegen in")) { Text(store.matchOrdner.resolvingSymlinksInPath().path).textSelection(.enabled) }
+            LabeledContent(L("espanso-Programm")) { Text(Espanso.programm ?? L("nicht gefunden")).textSelection(.enabled) }
+            LabeledContent("git") { Text(store.repo.map { L("{0} — Änderungen werden nach 30 s Ruhe committet und gepusht", $0.wurzel.path) } ?? L("kein git-Repo — Änderungen werden nur gespeichert")) }
+            Text(L("Jede Änderung ist nach ca. 1 s in espanso aktiv. Ausgeschaltete Ordner sind Dateien mit „_“ vorne — espanso lädt sie nicht."))
                 .font(.caption).foregroundStyle(.secondary)
         }
         .formStyle(.grouped)
@@ -41,35 +41,35 @@ private struct Rechtschreibung: View {
     var body: some View {
         Form {
             Section {
-                Text("macOS prüft immer die Rechtschreibung (rot unterstrichen). Kommas und Grammatik prüft es auf Deutsch nicht — dafür LanguageTool.")
+                Text(L("macOS prüft immer die Rechtschreibung (rot unterstrichen). Kommas und Grammatik prüft es auf Deutsch nicht — dafür LanguageTool."))
                     .font(.callout).foregroundStyle(.secondary)
             }
             Section("LanguageTool") {
-                Toggle("LanguageTool verwenden (Text wird an languagetool.org gesendet)", isOn: $ltAktiv)
-                TextField("E-Mail (Premium-Konto)", text: $ltBenutzer)
-                SecureField("API-Schlüssel", text: $schluessel)
+                Toggle(L("LanguageTool verwenden (Text wird an languagetool.org gesendet)"), isOn: $ltAktiv)
+                TextField(L("E-Mail (Premium-Konto)"), text: $ltBenutzer)
+                SecureField(L("API-Schlüssel"), text: $schluessel)
                     .onSubmit { Schluesselbund.speichern(dienst: Einstellungen.ltDienst, konto: ltBenutzer, geheim: schluessel) }
-                Picker("Sprache", selection: $ltSprache) {
-                    Text("Automatisch (de-CH / en-GB)").tag("auto")
-                    Text("Deutsch (Schweiz)").tag("de-CH")
-                    Text("Deutsch (Deutschland)").tag("de-DE")
-                    Text("Englisch (GB)").tag("en-GB")
-                    Text("Englisch (US)").tag("en-US")
+                Picker(L("Sprache"), selection: $ltSprache) {
+                    Text(L("Automatisch (de-CH / en-GB)")).tag("auto")
+                    Text(L("Deutsch (Schweiz)")).tag("de-CH")
+                    Text(L("Deutsch (Deutschland)")).tag("de-DE")
+                    Text(L("Englisch (GB)")).tag("en-GB")
+                    Text(L("Englisch (US)")).tag("en-US")
                 }
                 HStack {
-                    Button("Speichern & testen") {
+                    Button(L("Speichern & testen")) {
                         Schluesselbund.speichern(dienst: Einstellungen.ltDienst, konto: ltBenutzer, geheim: schluessel)
                         Task {
-                            let lt = LanguageTool(benutzer: ltBenutzer, schluessel: schluessel, sprache: "de-CH")
+                            let lt = LanguageTool(benutzer: ltBenutzer, schluessel: schluessel, sprache: Sprache.englisch ? "en-GB" : "de-CH")
                             do {
-                                let r = try await lt.pruefen("Ich glaube dass er morgen kommt.")
-                                test = r.isEmpty ? "Verbunden, aber nichts gemeldet" : "OK — \(r.count) Hinweis(e): \(r[0].meldung)"
+                                let r = try await lt.pruefen(Sprache.englisch ? "He go to school every days." : "Ich glaube dass er morgen kommt.")
+                                test = r.isEmpty ? L("Verbunden, aber nichts gemeldet") : L("OK — {0} Hinweis(e): {1}", r.count, r[0].meldung)
                             } catch { test = error.localizedDescription }
                         }
                     }
                     if let test { Text(test).font(.caption).foregroundStyle(.secondary).lineLimit(2) }
                 }
-                Text("Ohne E-Mail/Schlüssel wird die freie API genutzt (Zeichen- und Abfragegrenzen). Den Premium-Schlüssel gibt es im LanguageTool-Konto unter „Zugangsdaten“.")
+                Text(L("Ohne E-Mail/Schlüssel wird die freie API genutzt (Zeichen- und Abfragegrenzen). Den Premium-Schlüssel gibt es im LanguageTool-Konto unter „Zugangsdaten“."))
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
@@ -90,25 +90,25 @@ private struct KollisionenEinstellungen: View {
 
     var body: some View {
         Form {
-            Section("Schutzliste — ein Wort pro Zeile") {
+            Section(L("Schutzliste — ein Wort pro Zeile")) {
                 TextEditor(text: $schutz)
                     .font(.system(.body, design: .monospaced))
                     .frame(minHeight: 120)
                     .onChange(of: schutz) { _, t in store.schutzlisteSpeichern(t) }
-                Text("Wörter, in denen kein Kürzel auslösen darf (z. B. VVR, Stadtpark). Liegt in match/_bausteine/ und wird mit den Bausteinen verteilt.")
+                Text(L("Wörter, in denen kein Kürzel auslösen darf (z. B. VVR, Stadtpark). Liegt in match/_bausteine/ und wird mit den Bausteinen verteilt."))
                     .font(.caption).foregroundStyle(.secondary)
             }
-            Section("Wortschatz") {
-                LabeledContent("Datei") { Text(wortschatzPfad).lineLimit(1).truncationMode(.middle) }
-                LabeledContent("Wörter") { Text(store.wortschatz.count.formatted()) }
+            Section(L("Wortschatz")) {
+                LabeledContent(L("Datei")) { Text(wortschatzPfad).lineLimit(1).truncationMode(.middle) }
+                LabeledContent(L("Wörter")) { Text(store.wortschatz.count.formatted()) }
                 HStack {
-                    Button("Aus Textdateien aufbauen …") { aufbauen() }
-                    Button("Andere Datei wählen …") {
+                    Button(L("Aus Textdateien aufbauen …")) { aufbauen() }
+                    Button(L("Andere Datei wählen …")) {
                         let p = NSOpenPanel(); p.allowedContentTypes = [.plainText]
                         if p.runModal() == .OK, let u = p.url { wortschatzPfad = u.path; store.wortschatzLaden() }
                     }
                 }
-                Text("Wörter, die du wirklich schreibst (z. B. aus alten Berichten). Bleibt lokal, wird nicht verteilt.")
+                Text(L("Wörter, die du wirklich schreibst (z. B. aus alten Berichten). Bleibt lokal, wird nicht verteilt."))
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
@@ -119,7 +119,7 @@ private struct KollisionenEinstellungen: View {
     func aufbauen() {
         let p = NSOpenPanel()
         p.canChooseDirectories = true; p.allowsMultipleSelection = true
-        p.message = "Textdateien oder Ordner mit Berichten wählen (txt, md, csv, jsonl)"
+        p.message = L("Textdateien oder Ordner mit Berichten wählen (txt, md, csv, jsonl)")
         guard p.runModal() == .OK else { return }
         var dateien: [URL] = []
         for u in p.urls {

@@ -90,9 +90,9 @@ public enum KernFehler: LocalizedError, Equatable {
 
     public var errorDescription: String? {
         switch self {
-        case .rohtextUngueltig(let k): return "Der YAML-Text von „\(k)“ ist kein gültiger einzelner Eintrag (muss mit „- “ beginnen)."
-        case .pruefungFehlgeschlagen(let d, let g): return "\(d): Die neu geschriebene Datei ergäbe nicht dieselben Bausteine — nicht gespeichert. (\(g))"
-        case .nichtLesbar(let d, let g): return "\(d) ist kein gültiges espanso-YAML: \(g)"
+        case .rohtextUngueltig(let k): return L("Der YAML-Text von „{0}“ ist kein gültiger einzelner Eintrag (muss mit „- “ beginnen).", k)
+        case .pruefungFehlgeschlagen(let d, let g): return L("{0}: Die neu geschriebene Datei ergäbe nicht dieselben Bausteine — nicht gespeichert. ({1})", d, g)
+        case .nichtLesbar(let d, let g): return L("{0} ist kein gültiges espanso-YAML: {1}", d, g)
         }
     }
 }
@@ -277,12 +277,12 @@ public struct MatchDatei: Identifiable, Hashable, Sendable {
         }
         // Gegenprobe
         let neu = MatchDatei.lesen(text: teile, dateiname: dateiname)
-        guard !neu.nurLesen else { throw KernFehler.pruefungFehlgeschlagen(name, "Aufbau nicht mehr lesbar") }
+        guard !neu.nurLesen else { throw KernFehler.pruefungFehlgeschlagen(name, L("Aufbau nicht mehr lesbar")) }
         let ist = try neu.bausteine.map { try YamlWert.tabelle($0.wert).kanonisch }
         guard ist == erwartet else {
             let i = Array(zip(ist, erwartet)).firstIndex(where: { $0 != $1 }) ?? min(ist.count, erwartet.count)
             let k = i < bausteine.count ? bausteine[i].hauptkuerzel : "?"
-            throw KernFehler.pruefungFehlgeschlagen(name, "Abweichung bei „\(k)“")
+            throw KernFehler.pruefungFehlgeschlagen(name, L("Abweichung bei „{0}“", k))
         }
         return teile
     }

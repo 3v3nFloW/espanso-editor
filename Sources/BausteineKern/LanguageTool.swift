@@ -15,7 +15,7 @@ public struct LTTreffer: Identifiable, Hashable, Sendable {
 public enum LTFehler: LocalizedError {
     case http(Int, String)
     public var errorDescription: String? {
-        switch self { case .http(let c, let m): return "LanguageTool antwortet mit \(c): \(m.prefix(200))" }
+        switch self { case .http(let c, let m): return L("LanguageTool antwortet mit {0}: {1}", c, m.prefix(200)) }
     }
 }
 
