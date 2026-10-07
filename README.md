@@ -44,7 +44,8 @@ Requires macOS 14 or later and an installed espanso.
 
 espanso reverts an expansion on the *first* Backspace (`undo_backspace`). A patch that adds
 `undo_backspace_presses: 2` (revert only on two quick presses) plus fixes for related Backspace issues lives in
-[3v3nFloW/espanso, branch `kappa1`](https://github.com/3v3nFloW/espanso/tree/kappa1) and is offered upstream as pull requests.
+[3v3nFloW/espanso, branch `kappa1`](https://github.com/3v3nFloW/espanso/tree/kappa1) and is offered upstream as pull requests
+([#2826](https://github.com/espanso/espanso/pull/2826), [#2827](https://github.com/espanso/espanso/pull/2827), [#2828](https://github.com/espanso/espanso/pull/2828), [#2829](https://github.com/espanso/espanso/pull/2829), [#2830](https://github.com/espanso/espanso/pull/2830)).
 
 ## Build from source
 
