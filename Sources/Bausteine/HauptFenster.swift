@@ -110,10 +110,14 @@ struct Seitenleiste: View {
                         }
                         Button(L("Neuer Baustein hier")) { _ = store.neu(in: d.id) }.disabled(d.nurLesen)
                         Divider()
+                        Button(L("Nach oben")) { store.ordnerVerschieben(d.id, um: -1) }.disabled(!store.ordnerVerschiebbar(d.id, um: -1))
+                        Button(L("Nach unten")) { store.ordnerVerschieben(d.id, um: 1) }.disabled(!store.ordnerVerschiebbar(d.id, um: 1))
+                        Divider()
                         Button(L("Ordner löschen"), role: .destructive) { store.ordnerLoeschen(d.id) }
                             .disabled(!d.bausteine.isEmpty || !d.ausschaltbar)
                     }
                 }
+                .onMove { store.ordnerVerschieben(von: $0, nach: $1) }
             }
             Section(L("Prüfen")) {
                 Label { HStack { Text(L("Kollisionen")).font(.system(size: schrift)); Spacer(); Zahl(store.kollisionen.count, warnung: !store.kollisionen.isEmpty) } }

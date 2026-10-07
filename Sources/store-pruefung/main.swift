@@ -112,6 +112,20 @@ Task { @MainActor in
     let d = git(["diff", "--stat", "HEAD~1", "--"] + unberuehrt.map { "match/" + $0 })
     pruefe(d.isEmpty, "nicht berührte Dateien unverändert")
 
+    // 11 Ordner-Reihenfolge (am Schluss: Neuladen vergibt neue Baustein-IDs): verschieben, gespeichert, nach Neuladen gleich; aus/ein gemischt nicht
+    let aktiveVorher = s.dateien.filter(\.aktiv).map(\.id)
+    let zweiter = aktiveVorher[1]
+    s.ordnerVerschieben(zweiter, um: -1)
+    pruefe(s.dateien.first?.id == zweiter, "\(zweiter) nach oben")
+    s.ordnerVerschieben(von: IndexSet(integer: s.dateien.count - 1), nach: 0)   // ausgeschalteten ganz nach oben ziehen
+    pruefe(s.dateien.first?.aktiv == true && s.dateien.first?.id == zweiter, "ausgeschalteter bleibt unten")
+    await s.laden(espansoAnzahl: nil, verteilstatus: nil)
+    pruefe(s.dateien.first?.id == zweiter && s.dateien.filter(\.aktiv).count == aktiveVorher.count, "Reihenfolge nach Neuladen erhalten")
+    pruefe(!s.ordnerVerschiebbar(s.dateien.first!.id, um: -1), "oberster lässt sich nicht weiter hoch")
+    s.ordnerVerschieben(zweiter, um: 1)   // zurück
+    await s.laden(espansoAnzahl: nil, verteilstatus: nil)
+    pruefe(s.dateien.filter(\.aktiv).map(\.id) == aktiveVorher, "zurückgeschoben = Ausgangsreihenfolge")
+
     print(fehler == 0 ? "OK" : "\(fehler) FEHLER")
     exit(fehler == 0 ? 0 : 1)
 }

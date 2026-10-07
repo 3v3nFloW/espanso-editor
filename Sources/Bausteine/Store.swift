@@ -72,6 +72,8 @@ final class Store {
     var editorOrdner: URL { matchOrdner.appendingPathComponent("_bausteine") }
     var schutzlisteURL: URL { editorOrdner.appendingPathComponent("schutzwoerter.txt") }
     var akzeptiertURL: URL { editorOrdner.appendingPathComponent("kollisionen-ok.txt") }
+    /// Reihenfolge der Ordner in der Seitenleiste (Dateinamen ohne „_“, einer pro Zeile) — liegt bei den Bausteinen und wird mitverteilt.
+    var reihenfolgeURL: URL { editorOrdner.appendingPathComponent("ordner-reihenfolge.txt") }
 
     // MARK: Laden
 
@@ -104,7 +106,7 @@ final class Store {
 
     /// Liest alle Dateien, git-Änderungsdaten und Kollisionen im Hintergrund und übernimmt sie in einem Schritt.
     func laden(espansoAnzahl anzahl: Int?, verteilstatus status: Verteilstatus?) async {
-        let ordner = matchOrdner, repo = repo, schutzURL = schutzlisteURL, okURL = akzeptiertURL, wortschatz = wortschatz
+        let ordner = matchOrdner, repo = repo, schutzURL = schutzlisteURL, okURL = akzeptiertURL, wortschatz = wortschatz, folgeURL = reihenfolgeURL
         let r = await Task.detached { () -> (dateien: [MatchDatei], schutz: [String], ok: Set<String>, kollisionen: [Kollision]) in
             let fm = FileManager.default
             let namen = ((try? fm.contentsOfDirectory(atPath: ordner.path)) ?? []).filter { $0.hasSuffix(".yml") }.sorted()
@@ -112,8 +114,13 @@ final class Store {
                 guard let t = try? String(contentsOf: ordner.appendingPathComponent(n), encoding: .utf8) else { return nil }
                 return MatchDatei.lesen(text: t, dateiname: n)
             }
+            // Eingeschaltete vor ausgeschalteten; darin die gespeicherte Reihenfolge, Unbekannte danach alphabetisch, System zuletzt
+            let folge = Kollisionspruefung.liste((try? String(contentsOf: folgeURL, encoding: .utf8)) ?? "")
+            let platz = Dictionary(folge.enumerated().map { ($1, $0) }, uniquingKeysWith: { a, _ in a })
             d.sort { a, b in
                 if a.aktiv != b.aktiv { return a.aktiv }
+                let pa = platz[a.id] ?? Int.max, pb = platz[b.id] ?? Int.max
+                if pa != pb { return pa < pb }
                 if (a.id == "base.yml") != (b.id == "base.yml") { return b.id == "base.yml" }   // System ans Ende der aktiven
                 return a.name.localizedStandardCompare(b.name) == .orderedAscending
             }
@@ -349,6 +356,35 @@ final class Store {
         if seite == .ordner(id) { seite = .alle }
         bekannteStaende = staende()
         nachDemSchreiben()
+    }
+
+    /// Ordner in der Seitenleiste verschieben (Ziehen); ein- und ausgeschaltete bleiben je für sich gruppiert.
+    func ordnerVerschieben(von: IndexSet, nach: Int) {
+        dateien.move(fromOffsets: von, toOffset: nach)
+        dateien = dateien.filter(\.aktiv) + dateien.filter { !$0.aktiv }
+        reihenfolgeSpeichern()
+    }
+
+    /// Ordner um eine Stelle nach oben (-1) oder unten (+1) — nur innerhalb der ein- bzw. ausgeschalteten.
+    func ordnerVerschieben(_ id: String, um schritt: Int) {
+        guard let i = dateien.firstIndex(where: { $0.id == id }) else { return }
+        let j = i + schritt
+        guard dateien.indices.contains(j), dateien[j].aktiv == dateien[i].aktiv else { return }
+        dateien.swapAt(i, j)
+        reihenfolgeSpeichern()
+    }
+
+    func ordnerVerschiebbar(_ id: String, um schritt: Int) -> Bool {
+        guard let i = dateien.firstIndex(where: { $0.id == id }) else { return false }
+        return dateien.indices.contains(i + schritt) && dateien[i + schritt].aktiv == dateien[i].aktiv
+    }
+
+    private func reihenfolgeSpeichern() {
+        try? FileManager.default.createDirectory(at: editorOrdner, withIntermediateDirectories: true)
+        let t = "# Reihenfolge der Ordner in der Seitenleiste (Espanso Editor)\n" + dateien.map(\.id).joined(separator: "\n") + "\n"
+        try? t.write(to: reihenfolgeURL, atomically: true, encoding: .utf8)
+        protokoll(L("Ordner-Reihenfolge"))
+        gitPlanen()
     }
 
     // MARK: Schutzliste / Kollisionen
