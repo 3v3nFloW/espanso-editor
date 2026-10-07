@@ -3,7 +3,8 @@
 A native macOS editor for your [espanso](https://espanso.org) snippets — folders like Typinator, one searchable table,
 spell checking, and a check for abbreviations that fire in the middle of real words.
 
-*Unofficial. Not affiliated with the espanso project — it only reads and writes espanso's YAML files.*
+*Unofficial. Not affiliated with the espanso project — it only reads and writes espanso's YAML files.
+Typinator is a trademark of Ergonis Software; this project is not affiliated with Ergonis.*
 
 [Deutsch weiter unten](#deutsch)
 
@@ -12,7 +13,8 @@ spell checking, and a check for abbreviations that fire in the middle of real wo
 ## Features
 
 - **Folders = files.** Every `.yml` in espanso's `match/` folder is a folder in the sidebar. Rename, create, switch off
-  (prefix `_`, espanso then ignores the file) — no YAML editing needed. Drag snippets onto a folder to move them.
+  (prefix `_`, espanso then ignores the file) — no YAML editing needed. Drag snippets onto a folder to move them;
+  drag folders to reorder them (the order is stored with the snippets in `match/_bausteine/`).
 - **One table, instant search** across all folders, showing where each hit lives. Search abbreviations and text, only
   abbreviations or only the expansion text, optionally as a whole word (`hgr` then no longer finds “hochgradig”).
 - **Saves as you type.** The change is active in espanso about a second later. If your snippets live in a git
@@ -86,10 +88,10 @@ GPL-3.0-or-later — see [LICENSE](LICENSE).
 
 Ein Mac-Editor für deine espanso-Bausteine: Ordner wie bei Typinator, eine durchsuchbare Tabelle,
 Rechtschreibprüfung und eine Prüfung auf Kürzel, die mitten in echten Wörtern auslösen. *Inoffiziell, nicht vom
-espanso-Projekt.*
+espanso-Projekt. Typinator ist eine Marke von Ergonis Software; dieses Projekt steht in keiner Verbindung zu Ergonis.*
 
 - **Suche** über alle Ordner: Kürzel und Text, nur Kürzel oder nur Text, auf Wunsch als ganzes Wort.
-- **Ordner = Datei** in `match/`; ausschalten = `_` vor dem Dateinamen. Bausteine per Ziehen verschieben.
+- **Ordner = Datei** in `match/`; ausschalten = `_` vor dem Dateinamen. Bausteine per Ziehen verschieben, Ordner per Ziehen umsortieren.
 - **Speichert beim Tippen**, nach etwa 1 s in espanso aktiv; liegt der Ordner in einem git-Repo, wird nach 30 s Ruhe
   committet und gepusht.
 - **Kommentare bleiben erhalten**; jede Datei wird vor dem Schreiben gegengeprüft, danach muss espanso gleich viele
