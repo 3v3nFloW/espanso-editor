@@ -80,7 +80,8 @@ Task { @MainActor in
     s.aendern(k) { $0.kuerzel = ["tadtp"]; $0.text = "Kollisionstest"; $0.wortgrenze = false }
     await warte(2.5)
     s.schutzlisteSpeichern("# Test\nVVR\nStadtpark\n")
-    await warte(1.5)
+    let t0 = Date()   // die Prüfung gegen den ganzen Wortschatz dauert ~2 s — warten, bis sie da ist, statt fester Frist
+    while !s.kollisionen.contains(where: { $0.kuerzel == "tadtp" }) && Date().timeIntervalSince(t0) < 20 { await warte(0.1) }
     pruefe(s.kollisionen.contains { $0.kuerzel == "tadtp" && $0.ausSchutzliste.contains("Stadtpark") }, "Kollision tadtp in Stadtpark (Schutzliste) erkannt")
     s.loeschen([k])
     await warte(2.5)
@@ -89,6 +90,19 @@ Task { @MainActor in
     await warte(3)
     print("    akzeptiert:", s.akzeptiert.sorted(), "ggr-Kollisionen:", s.kollisionen.filter { $0.kuerzel == "ggr" }.map { ($0.baustein, $0.woerter) })
     pruefe(!s.kollisionen.contains { $0.kuerzel == "ggr" }, "ggr akzeptiert")
+
+    // 6b Schreibweise anpassen: propagate_case + uppercase_style landen in der Datei, espanso zählt gleich
+    let g = s.neu(in: "rx.yml")!
+    s.aendern(g) { $0.kuerzel = ["zzgross"]; $0.text = "geringgradig" }
+    await warte(2.5)
+    func gelesen(_ k: String) -> Baustein? { MatchDatei.lesen(text: datei("rx.yml"), dateiname: "rx.yml").bausteine.first { $0.hauptkuerzel == k } }
+    pruefe(gelesen("zzgross")?.zusatz == ["propagate_case": .wahr(true), "uppercase_style": .text("capitalize")], "neuer Baustein passt Schreibweise an")
+    s.aendern(g) { $0.kuerzel = ["ZZgross"] }
+    await warte(2.5)
+    pruefe(gelesen("ZZgross")?.schreibweiseAnpassen == false && gelesen("ZZgross")?.zusatz.isEmpty == true, "Kürzel mit Grossbuchstaben → exakt")
+    s.loeschen([g])
+    await warte(2.5)
+    pruefe(s.espansoAnzahl == n0 + 1, "Schreibweise-Test weg, espanso \(s.espansoAnzahl ?? -1)")
 
     // 7 Löschen
     s.loeschen([n])

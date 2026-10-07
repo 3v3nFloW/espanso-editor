@@ -10,7 +10,8 @@ public struct Baustein: Identifiable, Hashable, Sendable {
     public let id: UUID
     /// Dateiname ohne `_`-Präfix, z. B. `ct.yml` — bleibt gleich, wenn der Ordner aus- und eingeschaltet wird.
     public var ordnerID: String
-    public var kuerzel: [String]
+    /// Bekommt ein Kürzel Grossbuchstaben, bleibt es exakt (siehe `schreibweiseAnpassen`).
+    public var kuerzel: [String] { didSet { if kuerzelMitGrossbuchstaben { schreibweiseAnpassen = false } } }
     public var text: String
     public var wortgrenze: Bool
     /// Weitere Schlüssel, die der Editor nicht als Feld anbietet, aber unverändert mitschreibt (label, propagate_case …).
@@ -28,6 +29,20 @@ public struct Baustein: Identifiable, Hashable, Sendable {
     public var geaendert: Date?
 
     public var hauptkuerzel: String { kuerzel.first ?? "" }
+
+    /// „Schreibweise anpassen“: löst auch bei Ggr/GGR aus und schreibt dann „Geringgradig“
+    /// (espanso `propagate_case`, mit `uppercase_style: capitalize` auch bei GGR nur der Anfangsbuchstabe gross).
+    public var schreibweiseAnpassen: Bool {
+        get { if case .wahr(true)? = zusatz["propagate_case"] { return true } else { return false } }
+        set {
+            if newValue { zusatz["propagate_case"] = .wahr(true); zusatz["uppercase_style"] = .text("capitalize") }
+            else { zusatz.removeValue(forKey: "propagate_case"); zusatz.removeValue(forKey: "uppercase_style") }
+        }
+    }
+    /// Kürzel mit Grossbuchstaben (MDT, CdCLx) bleiben exakt — espanso vergleicht beim Anpassen ohne Rücksicht auf die Schreibweise.
+    public var kuerzelMitGrossbuchstaben: Bool { kuerzel.contains { $0.contains(where: \.isUppercase) } }
+    /// Ob „Schreibweise anpassen“ für diesen Eintrag angeboten wird.
+    public var schreibweiseAnpassbar: Bool { !komplex && !kuerzelMitGrossbuchstaben }
 
     public init(ordnerID: String, kuerzel: [String], text: String, wortgrenze: Bool) {
         id = UUID(); self.ordnerID = ordnerID; self.kuerzel = kuerzel; self.text = text; self.wortgrenze = wortgrenze

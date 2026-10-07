@@ -84,6 +84,10 @@ struct BausteinEditor: View {
             if !b.komplex {
                 Toggle(L("Wortgrenze"), isOn: Binding(get: { b.wortgrenze }, set: { w in store.aendern(id) { $0.wortgrenze = w } }))
                     .help(L("An: löst nur als ganzes Wort aus (z. B. „dt“ nicht in „Stadtpark“)"))
+                Toggle(L("Schreibweise anpassen"), isOn: Binding(get: { b.schreibweiseAnpassen }, set: { a in store.aendern(id) { $0.schreibweiseAnpassen = a } }))
+                    .disabled(b.kuerzelMitGrossbuchstaben && !b.schreibweiseAnpassen)
+                    .help(b.kuerzelMitGrossbuchstaben ? L("Kürzel mit Grossbuchstaben lösen nur genau so geschrieben aus")
+                          : L("An: „Ggr“ und „GGR“ lösen auch aus und ergeben „Geringgradig“. Aus: nur genau dieses Kürzel löst aus."))
             }
             Spacer()
             Menu {

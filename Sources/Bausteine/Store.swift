@@ -255,6 +255,7 @@ final class Store {
         else { ziel = dateien.first { $0.id == "meine-abkuerzungen.yml" }?.id ?? dateien.first(where: { $0.aktiv && !$0.nurLesen })?.id ?? "" }
         guard let di = dateien.firstIndex(where: { $0.id == ziel }), !dateien[di].nurLesen else { return nil }
         var b = Baustein(ordnerID: ziel, kuerzel: [""], text: "", wortgrenze: true)
+        b.schreibweiseAnpassen = true
         b.geaendert = Date()
         dateien[di].bausteine.append(b)
         entwuerfe.insert(b.id)
@@ -587,6 +588,7 @@ final class Store {
             }
             guard let di = dateien.firstIndex(where: { $0.id == ziel }), !dateien[di].nurLesen else { continue }
             var b = Baustein(ordnerID: ziel, kuerzel: [e.kuerzel], text: e.text, wortgrenze: e.wortgrenze)
+            b.schreibweiseAnpassen = !b.kuerzelMitGrossbuchstaben
             b.geaendert = Date()
             dateien[di].bausteine.append(b)
             vorhanden.insert(e.kuerzel)

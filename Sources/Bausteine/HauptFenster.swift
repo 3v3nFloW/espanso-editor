@@ -202,6 +202,11 @@ struct Tabelle: View {
                     .help(b.wortgrenze ? L("Löst nur als ganzes Wort aus") : L("Löst auch mitten im Wort aus"))
             }
             .width(min: 70, ideal: 80)
+            TableColumn(L("Schreibweise"), value: \.schreibweiseSortierung) { b in
+                Image(systemName: b.schreibweiseAnpassen ? "textformat" : "minus").foregroundStyle(b.schreibweiseAnpassen ? .primary : .tertiary)
+                    .help(b.schreibweiseAnpassen ? L("Passt die Schreibweise an: Ggr → Geringgradig") : L("Löst nur genau so geschrieben aus"))
+            }
+            .width(min: 70, ideal: 90)
             TableColumn(L("Geändert"), value: \.geaendertSortierung) { b in
                 Text(b.geaendert.map { $0.formatted(date: .numeric, time: .omitted) } ?? "").font(.system(size: schrift)).foregroundStyle(.secondary).monospacedDigit()
             }
@@ -220,6 +225,8 @@ struct Tabelle: View {
                 }
                 Button(L("Wortgrenze an")) { ids.forEach { id in store.aendern(id) { $0.wortgrenze = true } } }
                 Button(L("Wortgrenze aus")) { ids.forEach { id in store.aendern(id) { $0.wortgrenze = false } } }
+                Button(L("Schreibweise anpassen an")) { ids.forEach { id in store.aendern(id) { if $0.schreibweiseAnpassbar { $0.schreibweiseAnpassen = true } } } }
+                Button(L("Schreibweise anpassen aus")) { ids.forEach { id in store.aendern(id) { if !$0.komplex { $0.schreibweiseAnpassen = false } } } }
                 if ids.contains(where: { id in store.kollision(fuer: id) != nil }) {
                     Button(L("So lassen")) { ids.compactMap { store.kollision(fuer: $0)?.kuerzel }.forEach { store.akzeptieren($0) } }
                 }
@@ -255,6 +262,7 @@ struct Tabelle: View {
 
 extension Baustein {
     var wortgrenzeSortierung: Int { wortgrenze ? 1 : 0 }
+    var schreibweiseSortierung: Int { schreibweiseAnpassen ? 1 : 0 }
     var geaendertSortierung: Date { geaendert ?? .distantPast }
 }
 
