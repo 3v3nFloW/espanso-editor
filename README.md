@@ -1,4 +1,6 @@
-# Bausteine — ein Editor für espanso (macOS)
+# Espanso Editor (macOS)
+
+*Inoffiziell — nicht vom espanso-Projekt; ein eigenständiger Editor für dessen YAML-Dateien.*
 
 Übersichtliche Oberfläche für die Textbausteine von [espanso](https://espanso.org): Ordner wie in Typinator,
 Tabelle mit Suche über alle Ordner, Rechtschreibprüfung (macOS + optional LanguageTool), Kollisionsprüfung
@@ -12,14 +14,15 @@ für Kürzel, die mitten in Wörtern auslösen, Import (CSV, espanso-YAML, Typin
 - **Sofort aktiv:** Speichern ohne Knopf, espanso-Neustart ≈1 s nach der letzten Änderung.
 - **git:** Liegen die Bausteine in einem git-Repo, wird nach 30 s Ruhe (oder ⌘S, oder beim Beenden) committet und gepusht.
 - **Schutzliste / Kollisionen:** `match/_bausteine/schutzwoerter.txt` (wird mitverteilt) plus ein lokaler Wortschatz
-  (`~/Library/Application Support/Bausteine/wortschatz.txt`, `wort<TAB>anzahl`, aus eigenen Texten aufbaubar).
+  (`~/Library/Application Support/Espanso Editor/wortschatz.txt`, `wort<TAB>anzahl`, aus eigenen Texten aufbaubar).
 
 ## Bauen
 
 Nur Command Line Tools nötig (kein Xcode):
 
 ```sh
-./scripts/app-bauen.sh                # → build/Bausteine.app
+swift scripts/icon-bauen.swift "$PWD"  # Icon aus Resources/icon-entwuerfe.jpg (mittlerer Entwurf)
+./scripts/app-bauen.sh                # → build/Espanso Editor.app
 ./scripts/app-bauen.sh --installieren # → /Applications
 ```
 

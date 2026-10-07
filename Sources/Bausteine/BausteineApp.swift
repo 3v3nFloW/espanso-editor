@@ -9,7 +9,7 @@ struct BausteineApp: App {
     @State private var store = Store()
 
     var body: some Scene {
-        Window("Bausteine", id: "haupt") {
+        Window("Espanso Editor", id: "haupt") {
             HauptFenster()
                 .environment(store)
                 .frame(minWidth: 900, minHeight: 560)
@@ -42,6 +42,11 @@ struct BausteineApp: App {
                 Button("espanso neu starten") { Task.detached { Espanso.neustarten() } }
                 Divider()
                 Button("Suchen") { NotificationCenter.default.post(name: .sucheFokus, object: nil) }.keyboardShortcut("f")
+            }
+            CommandGroup(after: .toolbar) {
+                Button("Schrift grösser") { Schrift.aendern(+1) }.keyboardShortcut("+")
+                Button("Schrift kleiner") { Schrift.aendern(-1) }.keyboardShortcut("-")
+                Button("Normale Schriftgrösse") { Schrift.groesse = Schrift.standard }.keyboardShortcut("0")
             }
         }
 
@@ -169,4 +174,15 @@ enum Schnappschuss {
             exit(0)
         }
     }
+}
+
+/// Schriftgrösse für Tabelle und Editor (Regler unten in der Statusleiste, ⌘+ / ⌘− / ⌘0).
+enum Schrift {
+    static let standard = 13.0
+    static let bereich = 10.0...24.0
+    static var groesse: Double {
+        get { UserDefaults.standard.object(forKey: "schriftgroesse") as? Double ?? standard }
+        set { UserDefaults.standard.set(min(max(newValue, bereich.lowerBound), bereich.upperBound), forKey: "schriftgroesse") }
+    }
+    static func aendern(_ d: Double) { groesse = groesse + d }
 }

@@ -9,6 +9,7 @@ struct PruefTextView: NSViewRepresentable {
     var treffer: [LTTreffer] = []
     var pruefen = true
     var monospace = false
+    var schriftgroesse: Double = 13
     var onAnwenden: ((LTTreffer, String) -> Void)?
     var onIgnorieren: ((LTTreffer) -> Void)?
     var onWoerterbuch: ((String) -> Void)?
@@ -40,7 +41,7 @@ struct PruefTextView: NSViewRepresentable {
         tv.isAutomaticLinkDetectionEnabled = false
         tv.smartInsertDeleteEnabled = false
         tv.textContainerInset = NSSize(width: 4, height: 6)
-        tv.font = monospace ? .monospacedSystemFont(ofSize: 12, weight: .regular) : .systemFont(ofSize: 13)
+        tv.font = schrift
         tv.string = text
         tv.koordinator = context.coordinator
         anwendenPruefung(tv)
@@ -57,10 +58,15 @@ struct PruefTextView: NSViewRepresentable {
             tv.selectedRanges = sel.map { NSValue(range: NSIntersectionRange($0.rangeValue, NSRange(location: 0, length: laenge))) }
         }
         anwendenPruefung(tv)
+        if tv.font != schrift { tv.font = schrift }
         if tv.treffer != treffer {
             tv.treffer = treffer
             tv.markieren()
         }
+    }
+
+    private var schrift: NSFont {
+        monospace ? .monospacedSystemFont(ofSize: schriftgroesse - 1, weight: .regular) : .systemFont(ofSize: schriftgroesse)
     }
 
     private func anwendenPruefung(_ tv: NSTextView) {

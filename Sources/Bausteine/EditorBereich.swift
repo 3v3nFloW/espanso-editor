@@ -29,6 +29,7 @@ struct BausteinEditor: View {
     @AppStorage("ltAktiv") private var ltAktiv = false
     @AppStorage("ltBenutzer") private var ltBenutzer = ""
     @AppStorage("ltSprache") private var ltSprache = "auto"
+    @AppStorage("schriftgroesse") private var schrift = Schrift.standard
 
     var b: Baustein? { store.baustein(id) }
 
@@ -40,11 +41,12 @@ struct BausteinEditor: View {
                 if b.komplex {
                     Text("Eintrag mit Variablen/Formular — als YAML bearbeiten (beginnt mit „- trigger:“).").font(.caption).foregroundStyle(.secondary)
                     PruefTextView(text: Binding(get: { b.roh }, set: { neu in store.aendern(id) { $0.roh = neu; $0.kuerzel = Self.kuerzelAusRoh(neu) ?? $0.kuerzel } }),
-                                  pruefen: false, monospace: true)
+                                  pruefen: false, monospace: true, schriftgroesse: schrift)
                         .border(Color(nsColor: .separatorColor))
                 } else {
                     PruefTextView(text: Binding(get: { b.text }, set: { neu in store.aendern(id) { $0.text = neu } }),
                                   treffer: treffer.filter { !ignoriert.contains(schluessel($0)) },
+                                  schriftgroesse: schrift,
                                   onAnwenden: anwenden, onIgnorieren: { ignoriert.insert(schluessel($0)) },
                                   onWoerterbuch: woerterbuch)
                         .border(Color(nsColor: .separatorColor))
@@ -64,7 +66,8 @@ struct BausteinEditor: View {
     func kopfzeile(_ b: Baustein) -> some View {
         HStack(spacing: 12) {
             TextField("Kürzel", text: $kuerzelText)
-                .font(.system(.title3, design: .monospaced))
+                .font(.system(size: schrift + 1, design: .monospaced))
+                .controlSize(.large)
                 .textFieldStyle(.roundedBorder)
                 .frame(maxWidth: 240)
                 .focused($kuerzelFokus)

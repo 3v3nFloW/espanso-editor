@@ -126,6 +126,7 @@ struct Zahl: View {
 
 struct Tabelle: View {
     @Environment(Store.self) private var store
+    @AppStorage("schriftgroesse") private var schrift = Schrift.standard
 
     var body: some View {
         @Bindable var store = store
@@ -136,7 +137,7 @@ struct Tabelle: View {
             TableColumn("Kürzel", value: \.hauptkuerzel, comparator: .localizedStandard) { b in
                 HStack(spacing: 4) {
                     Text(b.kuerzel.joined(separator: ", ").isEmpty ? "(neu)" : b.kuerzel.joined(separator: ", "))
-                        .font(.system(.body, design: .monospaced))
+                        .font(.system(size: schrift, design: .monospaced))
                         .foregroundStyle(b.hauptkuerzel.isEmpty ? .secondary : .primary)
                     if b.kuerzel.contains(where: doppelt.contains) { Image(systemName: "square.on.square").foregroundStyle(.orange).help("Kürzel kommt mehrfach vor") }
                     if kollidiert.contains(b.id) { Image(systemName: "exclamationmark.triangle").foregroundStyle(.orange).help("Löst mitten in Wörtern aus") }
@@ -145,12 +146,13 @@ struct Tabelle: View {
             .width(min: 80, ideal: 120)
             TableColumn("Text", value: \.text, comparator: .localizedStandard) { b in
                 Text(b.komplex ? "⚙︎ " + (b.text.isEmpty ? b.roh : b.text) : b.text)
+                    .font(.system(size: schrift))
                     .lineLimit(1).truncationMode(.tail)
                     .foregroundStyle(b.komplex ? .secondary : .primary)
             }
             .width(min: 160, ideal: 380)
             TableColumn("Ordner", value: \.ordnerID) { b in
-                Text(store.ordnername(b.ordnerID)).foregroundStyle(.secondary)
+                Text(store.ordnername(b.ordnerID)).font(.system(size: schrift)).foregroundStyle(.secondary)
             }
             .width(min: 80, ideal: 140)
             TableColumn("Wortgrenze", value: \.wortgrenzeSortierung) { b in
@@ -159,7 +161,7 @@ struct Tabelle: View {
             }
             .width(min: 70, ideal: 80)
             TableColumn("Geändert", value: \.geaendertSortierung) { b in
-                Text(b.geaendert.map { $0.formatted(date: .numeric, time: .omitted) } ?? "").foregroundStyle(.secondary).monospacedDigit()
+                Text(b.geaendert.map { $0.formatted(date: .numeric, time: .omitted) } ?? "").font(.system(size: schrift)).foregroundStyle(.secondary).monospacedDigit()
             }
             .width(min: 70, ideal: 90)
         } rows: {
@@ -211,6 +213,7 @@ extension Baustein {
 
 struct KollisionsListe: View {
     @Environment(Store.self) private var store
+    @AppStorage("schriftgroesse") private var schrift = Schrift.standard
 
     var body: some View {
         @Bindable var store = store
@@ -222,10 +225,10 @@ struct KollisionsListe: View {
                 HStack(alignment: .firstTextBaseline) {
                     VStack(alignment: .leading, spacing: 2) {
                         HStack {
-                            Text(k.kuerzel).font(.system(.body, design: .monospaced)).bold()
+                            Text(k.kuerzel).font(.system(size: schrift, design: .monospaced)).bold()
                             Text("→ " + (store.baustein(k.baustein)?.text.split(separator: "\n").first.map(String.init) ?? "")).lineLimit(1).foregroundStyle(.secondary)
                         }
-                        Text(beschreibung(k)).font(.callout).foregroundStyle(.secondary)
+                        Text(beschreibung(k)).font(.system(size: schrift - 1)).foregroundStyle(.secondary)
                     }
                     Spacer()
                     Button("Wortgrenze setzen") { store.aendern(k.baustein) { $0.wortgrenze = true } }
@@ -252,6 +255,7 @@ extension Notification.Name { static let kuerzelFokus = Notification.Name("kuerz
 
 struct Statusleiste: View {
     @Environment(Store.self) private var store
+    @AppStorage("schriftgroesse") private var schrift = Schrift.standard
 
     var body: some View {
         HStack(spacing: 14) {
@@ -273,6 +277,17 @@ struct Statusleiste: View {
                     .buttonStyle(.borderless).foregroundStyle(.orange).help(m)
             case .ohneGit: Label("ohne git", systemImage: "externaldrive").foregroundStyle(.secondary)
             }
+            HStack(spacing: 4) {
+                Button { schrift = max(Schrift.bereich.lowerBound, schrift - 1) } label: { Image(systemName: "textformat.size.smaller") }
+                    .buttonStyle(.borderless)
+                Slider(value: $schrift, in: Schrift.bereich, step: 1)
+                    .controlSize(.mini)
+                    .frame(width: 90)
+                Button { schrift = min(Schrift.bereich.upperBound, schrift + 1) } label: { Image(systemName: "textformat.size.larger") }
+                    .buttonStyle(.borderless)
+            }
+            .help("Schriftgrösse \(Int(schrift)) pt — ⌘+ / ⌘− / ⌘0")
+            .onTapGesture(count: 2) { schrift = Schrift.standard }
             Marke()
         }
         .font(.callout)

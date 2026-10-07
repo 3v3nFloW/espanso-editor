@@ -324,7 +324,7 @@ final class Store {
     func akzeptieren(_ kuerzel: String) {
         akzeptiert.insert(kuerzel)
         try? FileManager.default.createDirectory(at: editorOrdner, withIntermediateDirectories: true)
-        let t = "# Kürzel ohne Wortgrenze, die bewusst so bleiben (Bausteine-Editor)\n" + akzeptiert.sorted().joined(separator: "\n") + "\n"
+        let t = "# Kürzel ohne Wortgrenze, die bewusst so bleiben (Espanso Editor)\n" + akzeptiert.sorted().joined(separator: "\n") + "\n"
         try? t.write(to: akzeptiertURL, atomically: true, encoding: .utf8)
         protokoll("Kollision akzeptiert: \(kuerzel)")
         kollisionenBerechnen()
@@ -341,7 +341,7 @@ final class Store {
     }
 
     static var standardWortschatz: URL {
-        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Bausteine/wortschatz.txt")
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Espanso Editor/wortschatz.txt")
     }
 
     func kollisionenBerechnen() {
@@ -457,7 +457,7 @@ final class Store {
         aenderungsprotokoll = []
         var titel = eintraege.prefix(3).joined(separator: ", ")
         if eintraege.count > 3 { titel += " (+\(eintraege.count - 3))" }
-        let nachricht = "Bausteine-Editor: " + (titel.isEmpty ? "Änderungen" : titel)
+        let nachricht = "Espanso Editor: " + (titel.isEmpty ? "Änderungen" : titel)
             + (eintraege.count > 3 ? "\n\n" + eintraege.map { "- " + $0 }.joined(separator: "\n") : "")
         let r = await Task.detached { repo.sichern(nachricht: nachricht) }.value
         verteilstatus = r.ok ? .gesichert : .fehler(r.meldung)

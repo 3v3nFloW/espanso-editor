@@ -97,7 +97,7 @@ Task { @MainActor in
     s.jetztVerteilen()
     await warte(5)
     let remote = Shell.run("/usr/bin/git", ["-C", dir + "/../gegenstelle.git", "log", "--oneline", "-1"]).aus
-    pruefe(s.verteilstatus == .gesichert && remote.contains("Bausteine-Editor"), "committet + gepusht: \(remote.trimmingCharacters(in: .whitespacesAndNewlines))")
+    pruefe(s.verteilstatus == .gesichert && remote.contains("Espanso Editor"), "committet + gepusht: \(remote.trimmingCharacters(in: .whitespacesAndNewlines))")
     pruefe(git(["status", "--porcelain"]).isEmpty, "Arbeitskopie sauber")
 
     // 10 Unveränderte Dateien Byte für Byte gleich

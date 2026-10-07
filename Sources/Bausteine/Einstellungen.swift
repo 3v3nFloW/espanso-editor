@@ -3,7 +3,7 @@ import AppKit
 import BausteineKern
 
 struct Einstellungen: View {
-    static let ltDienst = "Bausteine-Editor LanguageTool"
+    static let ltDienst = "Espanso Editor LanguageTool"
 
     var body: some View {
         TabView {
