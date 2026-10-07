@@ -95,13 +95,19 @@ struct BausteinEditor: View {
 
     @ViewBuilder
     func hinweise(_ b: Baustein) -> some View {
-        let doppelt = b.kuerzel.filter { !$0.isEmpty }.flatMap { k in store.anderswo(k, ausser: id).map { (k, store.ordnername($0.ordnerID)) } }
+        let andere = b.kuerzel.filter { !$0.isEmpty }.flatMap { k in store.anderswo(k, ausser: id).map { (k, $0.ordnerID) } }
+        let doppelt = andere.filter { store.datei($0.1)?.aktiv == true }.map { ($0.0, store.ordnername($0.1)) }
+        let ruhend = andere.filter { store.datei($0.1)?.aktiv != true }.map { ($0.0, store.ordnername($0.1)) }
         if store.entwuerfe.contains(id) {
             Label("Neu — wird gespeichert, sobald Kürzel und Text ausgefüllt sind.", systemImage: "square.and.pencil").font(.callout).foregroundStyle(.secondary)
         }
         if let (k, o) = doppelt.first {
             Label("„\(k)“ gibt es auch in „\(o)“\(doppelt.count > 1 ? " (+\(doppelt.count - 1))" : "") — espanso nimmt dann einen davon.", systemImage: "square.on.square")
                 .font(.callout).foregroundStyle(.orange)
+        }
+        if doppelt.isEmpty, let (k, o) = ruhend.first {
+            Label("„\(k)“ steht auch im ausgeschalteten Ordner „\(o)“ — stört erst, wenn er eingeschaltet wird.", systemImage: "square.on.square")
+                .font(.callout).foregroundStyle(.secondary)
         }
         if let k = store.kollision(fuer: id) {
             HStack {

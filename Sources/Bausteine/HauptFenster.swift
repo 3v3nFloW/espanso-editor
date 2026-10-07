@@ -13,15 +13,15 @@ struct HauptFenster: View {
         @Bindable var store = store
         NavigationSplitView {
             Seitenleiste(umbenennen: $umbenennen, umbenennenName: $umbenennenName, neuerOrdner: { neuerOrdnerZeigen = true })
-                .navigationSplitViewColumnWidth(min: 190, ideal: 220)
+                .navigationSplitViewColumnWidth(min: 210, ideal: 250)
         } detail: {
             VSplitView {
                 Group {
                     if store.seite == .kollisionen { KollisionsListe() } else { Tabelle() }
                 }
-                .frame(minHeight: 180)
+                .frame(maxWidth: .infinity, minHeight: 180, maxHeight: .infinity)
                 EditorBereich()
-                    .frame(minHeight: 220, idealHeight: 320)
+                    .frame(maxWidth: .infinity, minHeight: 220, idealHeight: 320, maxHeight: .infinity)
             }
         }
         .searchable(text: $store.suche, placement: .toolbar, prompt: "Kürzel oder Text suchen")
@@ -142,17 +142,17 @@ struct Tabelle: View {
                     if kollidiert.contains(b.id) { Image(systemName: "exclamationmark.triangle").foregroundStyle(.orange).help("Löst mitten in Wörtern aus") }
                 }
             }
-            .width(min: 90, ideal: 140)
+            .width(min: 80, ideal: 120)
             TableColumn("Text", value: \.text, comparator: .localizedStandard) { b in
                 Text(b.komplex ? "⚙︎ " + (b.text.isEmpty ? b.roh : b.text) : b.text)
                     .lineLimit(1).truncationMode(.tail)
                     .foregroundStyle(b.komplex ? .secondary : .primary)
             }
-            .width(min: 200, ideal: 480)
+            .width(min: 160, ideal: 380)
             TableColumn("Ordner", value: \.ordnerID) { b in
                 Text(store.ordnername(b.ordnerID)).foregroundStyle(.secondary)
             }
-            .width(min: 80, ideal: 130)
+            .width(min: 80, ideal: 140)
             TableColumn("Wortgrenze", value: \.wortgrenzeSortierung) { b in
                 Image(systemName: b.wortgrenze ? "checkmark" : "minus").foregroundStyle(b.wortgrenze ? .primary : .tertiary)
                     .help(b.wortgrenze ? "Löst nur als ganzes Wort aus" : "Löst auch mitten im Wort aus")

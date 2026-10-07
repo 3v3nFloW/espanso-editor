@@ -16,6 +16,7 @@ struct BausteineApp: App {
                 .onAppear {
                     delegate.store = store
                     store.starten()
+                    Schnappschuss.vielleicht(store)
                 }
         }
         .defaultSize(width: 1400, height: 860)
@@ -143,5 +144,29 @@ enum ImportExport {
         }
         do { try Importe.csvSchreiben(e).write(to: url, atomically: true, encoding: .utf8) }
         catch { melden("Export fehlgeschlagen", error.localizedDescription) }
+    }
+}
+
+/// Testhilfe: BAUSTEINE_SCHNAPPSCHUSS=<png> rendert das Fenster unsichtbar in eine Datei und beendet die App.
+/// BAUSTEINE_SCHNAPPSCHUSS_KUERZEL=<kürzel> wählt vorher einen Baustein, BAUSTEINE_SCHNAPPSCHUSS_SEITE=kollisionen die Kollisionsliste.
+@MainActor
+enum Schnappschuss {
+    static func vielleicht(_ store: Store) {
+        let env = ProcessInfo.processInfo.environment
+        guard let ziel = env["BAUSTEINE_SCHNAPPSCHUSS"] else { return }
+        NSApp.setActivationPolicy(.accessory)
+        for w in NSApp.windows { w.alphaValue = 0; w.setContentSize(NSSize(width: 1400, height: 860)) }
+        Task {
+            try? await Task.sleep(for: .seconds(4))
+            if env["BAUSTEINE_SCHNAPPSCHUSS_SEITE"] == "kollisionen" { store.seite = .kollisionen }
+            if let k = env["BAUSTEINE_SCHNAPPSCHUSS_KUERZEL"], let b = store.aktiveBausteine.first(where: { $0.hauptkuerzel == k }) { store.auswahl = [b.id] }
+            for w in NSApp.windows where w.frame.width > 500 { w.setFrame(NSRect(x: 0, y: 0, width: 1400, height: 860), display: true) }
+            try? await Task.sleep(for: .seconds(2))
+            guard let w = NSApp.windows.first(where: { $0.contentView != nil && $0.frame.width > 500 }), let v = w.contentView?.superview ?? w.contentView,
+                  let rep = v.bitmapImageRepForCachingDisplay(in: v.bounds) else { exit(3) }
+            v.cacheDisplay(in: v.bounds, to: rep)
+            try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: ziel))
+            exit(0)
+        }
     }
 }
