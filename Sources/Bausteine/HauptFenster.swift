@@ -108,7 +108,6 @@ struct Seitenleiste: View {
         }
         .font(.system(size: schrift))
         .environment(\.defaultMinListRowHeight, schrift + 12)
-        .id(Int(schrift))
         .listStyle(.sidebar)
         .safeAreaInset(edge: .bottom) {
             Button { neuerOrdner() } label: { Label("Neuer Ordner", systemImage: "folder.badge.plus") }
@@ -138,6 +137,10 @@ struct Tabelle: View {
         let zeilen = store.sichtbar
         let doppelt = store.doppelteKuerzel
         let kollidiert = Set(store.kollisionen.map(\.baustein))
+        // Zellen lesen nur diese Konstanten, nicht den Store — sonst aktualisiert sich jede Zelle einzeln mitten im
+        // Tabellen-Update („reentrant operation in its NSTableView delegate“, Absturz 07.10. 10:45)
+        let schrift = store.schrift
+        let ordnernamen = Dictionary(uniqueKeysWithValues: store.dateien.map { ($0.id, $0.name) })
         Table(of: Baustein.self, selection: $store.auswahl, sortOrder: $store.sortierung) {
             TableColumn("Kürzel", value: \.hauptkuerzel, comparator: .localizedStandard) { b in
                 HStack(spacing: 4) {
@@ -157,7 +160,7 @@ struct Tabelle: View {
             }
             .width(min: 160, ideal: 380)
             TableColumn("Ordner", value: \.ordnerID) { b in
-                Text(store.ordnername(b.ordnerID)).font(.system(size: schrift)).foregroundStyle(.secondary)
+                Text(ordnernamen[b.ordnerID] ?? b.ordnerID).font(.system(size: schrift)).foregroundStyle(.secondary)
             }
             .width(min: 80, ideal: 140)
             TableColumn("Wortgrenze", value: \.wortgrenzeSortierung) { b in
@@ -189,7 +192,6 @@ struct Tabelle: View {
             }
         }
         .onDeleteCommand { loeschenFragen(store.auswahl) }
-        .id(Int(schrift))   // NSTableView behält sonst die alten Zeilenhöhen
         .overlay {
             if zeilen.isEmpty {
                 ContentUnavailableView(store.suche.isEmpty ? "Keine Bausteine" : "Nichts gefunden",
@@ -245,7 +247,6 @@ struct KollisionsListe: View {
                 .padding(.vertical, 2)
             }
         }
-        .id(Int(schrift))
     }
 
     func beschreibung(_ k: Kollision) -> String {

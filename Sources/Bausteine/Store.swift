@@ -64,53 +64,67 @@ final class Store {
         konfigOrdner = Espanso.konfigOrdner()
         matchOrdner = konfigOrdner.appendingPathComponent("match")
         let ordner = matchOrdner
+        let wortschatzURL = URL(fileURLWithPath: UserDefaults.standard.string(forKey: "wortschatzPfad") ?? Store.standardWortschatz.path)
         Task {
-            let repo = await Task.detached { GitRepo.finden(ordner) }.value
+            // Start: alles im Hintergrund vorbereiten und der Oberfläche in EINEM Schritt übergeben. Jede weitere
+            // Änderung kurz nach dem ersten Füllen der Tabelle (Kollisionen, git-Daten, espanso-Zählung) löste
+            // „reentrant operation in its NSTableView delegate“ aus — Vorstufe des Absturzes vom 07.10. 10:45.
+            let (repo, fehler, wortschatz, anzahl) = await Task.detached { () -> (GitRepo?, String?, [String: Int], Int?) in
+                let r = GitRepo.finden(ordner)
+                let f = r?.holen()
+                return (r, f, Wortschatz.laden(wortschatzURL), Espanso.anzahlGeladen())
+            }.value
             self.repo = repo
-            self.verteilstatus = repo == nil ? .ohneGit : .gesichert
-            if let repo, let f = await Task.detached(operation: { repo.holen() }).value { meldung = "Abgleich beim Start: \(f)" }
-            laden()
-            await espansoZaehlen(versatzSetzen: true)
-            wortschatzLaden()
+            self.wortschatz = wortschatz
+            await laden(espansoAnzahl: anzahl, verteilstatus: repo == nil ? .ohneGit : .gesichert)
+            if let fehler { meldung = "Abgleich beim Start: \(fehler)" }
         }
         waechter = Timer.scheduledTimer(withTimeInterval: 3, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.aufFremdeAenderungenPruefen() }
         }
     }
 
-    func laden() {
-        let fm = FileManager.default
-        let namen = ((try? fm.contentsOfDirectory(atPath: matchOrdner.path)) ?? []).filter { $0.hasSuffix(".yml") }.sorted()
-        let alteAuswahl = auswahl.compactMap { id in baustein(id).map { ($0.ordnerID, $0.hauptkuerzel) } }
-        dateien = namen.compactMap { n in
-            guard let t = try? String(contentsOf: matchOrdner.appendingPathComponent(n), encoding: .utf8) else { return nil }
-            return MatchDatei.lesen(text: t, dateiname: n)
-        }
-        dateien.sort { a, b in
-            if a.aktiv != b.aktiv { return a.aktiv }
-            if (a.id == "base.yml") != (b.id == "base.yml") { return b.id == "base.yml" }   // System ans Ende der aktiven
-            return a.name.localizedStandardCompare(b.name) == .orderedAscending
-        }
-        bekannteStaende = staende()
-        auswahl = Set(alteAuswahl.compactMap { o, k in dateien.first { $0.id == o }?.bausteine.first { $0.hauptkuerzel == k }?.id })
-        schutzwoerter = Kollisionspruefung.liste((try? String(contentsOf: schutzlisteURL, encoding: .utf8)) ?? "")
-        akzeptiert = Set(Kollisionspruefung.liste((try? String(contentsOf: akzeptiertURL, encoding: .utf8)) ?? ""))
-        kollisionenBerechnen()
-        datenNachladen()
-    }
+    func laden() { Task { await laden(espansoAnzahl: nil, verteilstatus: nil) } }
 
-    /// Änderungsdaten aus git blame im Hintergrund.
-    private func datenNachladen() {
-        guard let repo else { return }
-        let jobs = dateien.map { ($0.id, matchOrdner.appendingPathComponent($0.dateiname)) }
-        Task {
-            for (id, url) in jobs {
-                let z = await Task.detached { repo.zeilendaten(url) }.value
-                guard let di = dateien.firstIndex(where: { $0.id == id }) else { continue }
-                for bi in dateien[di].bausteine.indices where dateien[di].bausteine[bi].quelle != nil {
-                    dateien[di].bausteine[bi].geaendert = dateien[di].bausteine[bi].zeilen.compactMap { z[$0] }.max()
+    /// Liest alle Dateien, git-Änderungsdaten und Kollisionen im Hintergrund und übernimmt sie in einem Schritt.
+    func laden(espansoAnzahl anzahl: Int?, verteilstatus status: Verteilstatus?) async {
+        let ordner = matchOrdner, repo = repo, schutzURL = schutzlisteURL, okURL = akzeptiertURL, wortschatz = wortschatz
+        let r = await Task.detached { () -> (dateien: [MatchDatei], schutz: [String], ok: Set<String>, kollisionen: [Kollision]) in
+            let fm = FileManager.default
+            let namen = ((try? fm.contentsOfDirectory(atPath: ordner.path)) ?? []).filter { $0.hasSuffix(".yml") }.sorted()
+            var d: [MatchDatei] = namen.compactMap { n in
+                guard let t = try? String(contentsOf: ordner.appendingPathComponent(n), encoding: .utf8) else { return nil }
+                return MatchDatei.lesen(text: t, dateiname: n)
+            }
+            d.sort { a, b in
+                if a.aktiv != b.aktiv { return a.aktiv }
+                if (a.id == "base.yml") != (b.id == "base.yml") { return b.id == "base.yml" }   // System ans Ende der aktiven
+                return a.name.localizedStandardCompare(b.name) == .orderedAscending
+            }
+            if let repo {
+                for di in d.indices {
+                    let z = repo.zeilendaten(ordner.appendingPathComponent(d[di].dateiname))
+                    for bi in d[di].bausteine.indices { d[di].bausteine[bi].geaendert = d[di].bausteine[bi].zeilen.compactMap { z[$0] }.max() }
                 }
             }
+            let schutz = Kollisionspruefung.liste((try? String(contentsOf: schutzURL, encoding: .utf8)) ?? "")
+            let ok = Set(Kollisionspruefung.liste((try? String(contentsOf: okURL, encoding: .utf8)) ?? ""))
+            let k = Kollisionspruefung.pruefen(d.filter(\.aktiv).flatMap(\.bausteine), wortschatz: wortschatz, schutz: schutz, akzeptiert: ok)
+            return (d, schutz, ok, k)
+        }.value
+        // Inzwischen etwas bearbeitet? Dann nicht überschreiben — der Wächter liest nach dem Speichern erneut.
+        guard schreibenGeplant.isEmpty, schreibAufgabe == nil, entwuerfe.isEmpty else { return }
+        let alteAuswahl = auswahl.compactMap { id in baustein(id).map { ($0.ordnerID, $0.hauptkuerzel) } }
+        dateien = r.dateien
+        schutzwoerter = r.schutz
+        akzeptiert = r.ok
+        kollisionen = r.kollisionen
+        auswahl = Set(alteAuswahl.compactMap { o, k in r.dateien.first { $0.id == o }?.bausteine.first { $0.hauptkuerzel == k }?.id })
+        bekannteStaende = staende()
+        if let status { verteilstatus = status }
+        if let anzahl {
+            espansoAnzahl = anzahl
+            espansoVersatz = anzahl - gespeicherteAktive
         }
     }
 
@@ -454,8 +468,20 @@ final class Store {
 
     func jetztVerteilen() { gitPlanen(sofort: true) }
 
+    private var sichertGerade = false
+
     func sichern() async {
         guard let repo else { return }
+        // nie zwei git-Läufe gleichzeitig (sonst index.lock → der erste scheitert); der laufende nimmt Neues mit
+        if sichertGerade { return }
+        sichertGerade = true
+        defer { sichertGerade = false }
+        repeat {
+            await sichernEinmal(repo)
+        } while !aenderungsprotokoll.isEmpty && verteilstatus == .gesichert
+    }
+
+    private func sichernEinmal(_ repo: GitRepo) async {
         if schreibAufgabe != nil || !schreibenGeplant.isEmpty { await schreiben() }
         verteilstatus = .laeuft
         let eintraege = aenderungsprotokoll
@@ -481,6 +507,7 @@ final class Store {
         schreibAufgabe?.cancel(); schreibAufgabe = nil
         gitAufgabe?.cancel()
         await schreiben()
+        gitAufgabe?.cancel()   // schreiben() hat eine neue 30-s-Verteilung geplant — wir verteilen gleich selbst
         if repo != nil, verteilstatus != .gesichert || repo?.hatAenderungen == true { await sichern() }
         if neustartAufgabe != nil { neustartAufgabe?.cancel(); await Task.detached { Espanso.neustarten() }.value }
     }

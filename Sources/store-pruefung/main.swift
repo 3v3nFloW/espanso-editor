@@ -90,7 +90,7 @@ Task { @MainActor in
 
     // 8 Fremde Änderung (wie :neu) wird übernommen
     try? (datei("rx.yml") + "- trigger: \"zzfremd\"\n  replace: \"von aussen\"\n").write(to: match.appendingPathComponent("rx.yml"), atomically: true, encoding: .utf8)
-    await warte(4)
+    await warte(8)
     pruefe(s.aktiveBausteine.contains { $0.hauptkuerzel == "zzfremd" }, "fremde Änderung eingelesen")
 
     // 9 Verteilen

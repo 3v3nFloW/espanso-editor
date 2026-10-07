@@ -75,10 +75,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Kein Warten im Hauptthread — ein Semaphore- bzw. terminateLater-Warten hat die App hängen lassen,
     /// weil das Speichern selbst den Hauptthread braucht.
     private var darfBeenden = false
+    /// Fenster ausblenden zählt für macOS als „letztes Fenster zu“ → zweites terminate; nur ein Beenden-Lauf
+    private var beendenLaeuft = false
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         MainActor.assumeIsolated {
             guard !darfBeenden, let store, store.hatOffenes else { return .terminateNow }
+            if beendenLaeuft { return .terminateCancel }
+            beendenLaeuft = true
             for w in sender.windows { w.orderOut(nil) }
             Task { @MainActor in
                 await store.beenden()
@@ -193,6 +197,34 @@ enum ImportExport {
 enum Schnappschuss {
     static func vielleicht(_ store: Store) {
         let env = ProcessInfo.processInfo.environment
+        if let s = env["BAUSTEINE_LEERLAUF"].flatMap(Double.init) {
+            NSApp.setActivationPolicy(.accessory)
+            for w in NSApp.windows { w.alphaValue = 0 }
+            Task { try? await Task.sleep(for: .seconds(s)); exit(0) }
+            return
+        }
+        if env["BAUSTEINE_STRESS"] != nil {
+            // Test: Zoom, Auswahl, Ordnerwechsel und Neuladen schnell hintereinander (Absturz 07.10. 10:45 im Tabellen-Update)
+            NSApp.setActivationPolicy(.accessory)
+            for w in NSApp.windows { w.alphaValue = 0; w.setFrame(NSRect(x: 0, y: 0, width: 1400, height: 860), display: true) }
+            Task {
+                try? await Task.sleep(for: .seconds(4))
+                let alle = store.aktiveBausteine
+                let ordner = store.dateien.map(\.id)
+                for i in 0..<120 {
+                    store.schrift = 11 + Double(i % 12)
+                    if let b = alle.randomElement() { store.auswahl = [b.id] }
+                    if i % 7 == 0, let o = ordner.randomElement() { store.seite = .ordner(o) }
+                    if i % 11 == 0 { store.seite = .alle }
+                    if i % 13 == 0 { store.seite = .kollisionen }
+                    if i % 17 == 0 { store.laden() }
+                    try? await Task.sleep(for: .milliseconds(i % 3 == 0 ? 5 : 40))
+                }
+                print("STRESS OK")
+                exit(0)
+            }
+            return
+        }
         if env["BAUSTEINE_BEENDEN_TEST"] != nil {
             // Test: Änderung machen und sofort beenden — muss gespeichert + verteilt sein und darf nicht hängen
             NSApp.setActivationPolicy(.accessory)
